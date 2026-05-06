@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Vite build output and cache
+dist/
+client/dist/
+.vite/
+
+# Prisma generated client (regenerated on container build)
+# server/node_modules is covered by node_modules/ above
+
+# Environment — never commit secrets
+.env
+# .env.example is committed intentionally
+
+# TypeScript build output
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
