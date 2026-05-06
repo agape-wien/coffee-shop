@@ -31,8 +31,7 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 ├── packages/
 │   └── shared/           TypeScript types used by both client and server
 ├── docs/                 Architecture, planning, decisions
-├── docker-compose.yml    Production compose
-└── docker-compose.dev.yml  Dev compose with hot reload
+└── docker-compose.yaml   Dev compose with hot reload (default file, `docker compose up -d`)
 ```
 
 ## Views and routes
@@ -60,8 +59,16 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 - TypeScript strict mode everywhere — no `any`, use `unknown` + type guards
 - All shared types live in `packages/shared` — never duplicate type definitions
 - Zod for runtime validation at API boundaries (both REST and Socket.io payloads)
-- No comments explaining what code does — only write a comment when the WHY is non-obvious
 - Prisma is the only way to touch the database — no raw SQL except in migrations
+- Document both the WHAT and the WHY — the what (behavior, contract, edge cases) forms the basis for user-facing documentation; the why (unconventional choices, hidden constraints, trade-offs) is institutional memory that prevents good decisions from being undone
+- Never write a what-comment that just restates the function name in prose — describe behavior and contract instead
+- Unconventional choices require a written justification, either as a code comment or in `docs/TRACKER.md` decision log
+
+## Module system
+- **ESM everywhere** — use `import` / `export` syntax. `require()` and `module.exports` are banned.
+- All `package.json` files must have `"type": "module"`.
+- Local imports in TypeScript must use the `.js` extension (e.g. `import foo from './foo.js'`). TypeScript resolves `.js` → `.ts` at compile time; Node.js and tsx need `.js` at runtime.
+- Node built-ins are imported with the `node:` prefix (e.g. `import { createServer } from 'node:http'`).
 
 ## Open decisions (do not implement without checking)
 - Payment: explicitly out of scope for v1
@@ -72,16 +79,24 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 ## Development workflow
 ```bash
 # Start everything with hot reload
-docker-compose -f docker-compose.dev.yml up
+docker compose up -d
 
 # Frontend: http://localhost:5173
 # Backend:  http://localhost:3001
 # DB:       localhost:5432
 ```
 
+## Session continuity
+
+**At the start of every session, read `docs/TRACKER.md` first.** It is the ground truth for current project state, what is in progress, and what comes next. Never assume continuity from conversation history.
+
+Update `docs/TRACKER.md` whenever a task is completed or the project state changes.
+
 ## Key files to know
+- `docs/TRACKER.md` — **current project state, active TODOs, decision log** (read this first)
 - `packages/shared/src/types.ts` — canonical type definitions for all domains
-- `server/src/prisma/schema.prisma` — database schema (source of truth for data shape)
-- `server/src/socket/handlers.ts` — all Socket.io event handlers in one place
+- `server/prisma/schema.prisma` — database schema (source of truth for data shape)
+- `server/src/socket/index.ts` — Socket.io init and room management
 - `docs/ARCHITECTURE.md` — event schema, API endpoints, data flow diagrams
 - `docs/PLANNING.md` — phased implementation roadmap
+- `docs/SOUL.md` — design principles, collaboration rules, code documentation standard

@@ -1,0 +1,109 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" covers local dev (Windows/macOS). "linux-musl-openssl-3.0.x" covers
+  // the Alpine Docker container. Both binaries are downloaded during `prisma generate`.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Menu ────────────────────────────────────────────────────────────────────
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  sortOrder Int        @default(0)
+  items     MenuItem[]
+}
+
+// ee: espresso-equivalent portions used per serving (supply tracking, not pricing)
+// me: milk-equivalent ml used per serving (supply tracking, not pricing)
+// type on MenuItem is intentionally redundant with categoryId — it enables a single-index
+// query for "all coffee items across all orders today" without a join to Category.
+model MenuItem {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  available   Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  type        ItemType
+  ee          Float       @default(0)
+  me          Float       @default(0)
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+}
+
+enum ItemType {
+  COFFEE
+  OTHER
+}
+
+// ─── Tables ──────────────────────────────────────────────────────────────────
+
+model Table {
+  id      String  @id @default(cuid())
+  number  Int     @unique
+  label   String?
+  // qrToken is the URL-safe token embedded in the QR code. Rotatable by management.
+  qrToken String  @unique
+  orders  Order[]
+}
+
+// ─── Order number counter ─────────────────────────────────────────────────────
+
+// Tracks the next order number per calendar date.
+// Numbers run 1–999 and reset on a new date. Using a date string (YYYY-MM-DD) as PK
+// avoids server-timezone drift — the application controls what "today" means.
+model DailyCounter {
+  date    String @id
+  counter Int    @default(0)
+}
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+// tableId null = order placed from the main kiosk (no table association).
+// Kiosk orders receive socket notifications via the order:{id} room like any other order.
+//
+// coffeeStatus / otherStatus are null when the order contains no items of that type.
+// There is no order-level status field — all lifecycle state lives in these two part fields.
+// A part stays on the pickup display until it reaches PICKED_UP, so one part can be
+// collected while the other is still waiting — they are fully independent.
+model Order {
+  id           String      @id @default(cuid())
+  number       Int
+  tableId      String?
+  table        Table?      @relation(fields: [tableId], references: [id])
+  coffeeStatus PartStatus? @default(PENDING)
+  otherStatus  PartStatus? @default(PENDING)
+  notes        String?
+  items        OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+// No status field on OrderItem — baristas act on whole parts (all coffees, all others),
+// not on individual line items.
+model OrderItem {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id])
+  menuItemId String
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  quantity   Int       @default(1)
+  notes      String?
+}
+
+// Lifecycle of one part (coffee or other) of an order.
+// Cancelling an order sets all non-null parts to CANCELLED in one operation.
+enum PartStatus {
+  PENDING      // submitted, not yet started
+  IN_PROGRESS  // barista is working on this part
+  DONE         // ready for pickup — appears on pickup display
+  PICKED_UP    // collected — removed from pickup display
+  CANCELLED
+}

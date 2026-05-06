@@ -11,11 +11,11 @@ Customer / Kiosk         Barista screens          Pickup display
      │◄── Socket order:placed ─┤── Socket order:placed ─┤
      │    (own order room)     │    (kitchen room)      │    (display room)
      │                        │                        │
-     │                        │  Socket order:item:started
-     │                        │◄─────────────────────── │ (barista taps item)
+     │                        │  Socket order:part:start/done
+     │                        │◄─────────────────────── │ (barista taps part)
      │                        │                        │
-     │◄── Socket order:ready ──┤──────────────────────►─┤
-     │    (own order room)     │                        │  (number appears)
+     │◄── Socket order:updated─┤──────────────────────►─┤
+     │    (own order room)     │                        │  (part appears when DONE)
 ```
 
 Management screens use **REST only** — no Socket.io needed for CRUD. However, the server broadcasts `menu:updated` on the `management` socket room after any menu change so ordering screens can refresh without polling.
@@ -23,6 +23,17 @@ Management screens use **REST only** — no Socket.io needed for CRUD. However, 
 ---
 
 ## Database schema (Prisma)
+
+Source of truth: `server/prisma/schema.prisma`
+
+### Design decisions baked into the schema
+
+- **No price field (v1)** — the shop isn't charging for orders yet. Price will be added as a `Decimal` on `MenuItem` when payment is in scope.
+- **`ee` / `me` on MenuItem** — espresso-equivalent portions and milk-equivalent ml per serving. Used for supply tracking and reporting, not pricing.
+- **`type` on MenuItem is intentionally redundant** — it duplicates the category grouping but enables efficient single-index queries for "all coffee items across today's orders" without a join to `Category`.
+- **Events removed** — `createdAt` on `Order` is sufficient for date-based grouping and reporting.
+- **`tableId` nullable** — `null` means the order was placed from the main kiosk. Kiosk orders receive socket notifications via `order:{id}` room exactly like table orders; no separate Customer model is needed.
+- **PICKED_UP is per-part, not per-order** — a `coffeeStatus: PICKED_UP` order stays on the display if `otherStatus` is still `DONE`. Live queries filter on individual part statuses, not an order-level flag.
 
 ### Core tables
 
@@ -38,59 +49,72 @@ model MenuItem {
   id          String      @id @default(cuid())
   name        String
   description String?
-  price       Decimal     @db.Decimal(10,2)
   imageUrl    String?
   available   Boolean     @default(true)
   sortOrder   Int         @default(0)
+  type        ItemType                    // COFFEE | OTHER
+  ee          Float       @default(0)    // espresso-equivalent portions
+  me          Float       @default(0)    // milk-equivalent ml
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
 }
 
+enum ItemType {
+  COFFEE
+  OTHER
+}
+
 model Table {
-  id       String  @id @default(cuid())
-  number   Int     @unique
-  label    String?          // e.g. "Window Table 3"
-  qrToken  String  @unique  // part of QR URL, rotatable
-  orders   Order[]
+  id      String  @id @default(cuid())
+  number  Int     @unique
+  label   String?
+  qrToken String  @unique  // rotatable token embedded in QR URL
+  orders  Order[]
+}
+
+// Tracks the running order number per calendar date (YYYY-MM-DD).
+// Numbers run 1–999 and reset on a new date.
+model DailyCounter {
+  date    String @id
+  counter Int    @default(0)
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  number     Int         // Human-readable: 001–999 then wraps
-  tableId    String?
-  table      Table?      @relation(fields: [tableId], references: [id])
-  status     OrderStatus @default(PLACED)
-  total      Decimal     @db.Decimal(10,2)
-  notes      String?
-  items      OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  number       Int         // human-readable 1–999, daily reset
+  tableId      String?     // null = kiosk order
+  table        Table?      @relation(fields: [tableId], references: [id])
+  // One status field per item type. Null when the order contains no items of that type.
+  // There is no order-level status — everything is expressed through these two fields.
+  coffeeStatus PartStatus? @default(PENDING)
+  otherStatus  PartStatus? @default(PENDING)
+  notes        String?
+  items        OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model OrderItem {
-  id         String          @id @default(cuid())
+  id         String    @id @default(cuid())
   orderId    String
-  order      Order           @relation(fields: [orderId], references: [id])
+  order      Order     @relation(fields: [orderId], references: [id])
   menuItemId String
-  menuItem   MenuItem        @relation(fields: [menuItemId], references: [id])
-  quantity   Int             @default(1)
-  notes      String?         // Free-text modifiers for v1
-  status     OrderItemStatus @default(PENDING)
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  quantity   Int       @default(1)
+  notes      String?   // free-text modifiers for v1
+  // No status field — status is tracked at the part level on Order, not per item.
 }
 
-enum OrderStatus {
-  PLACED        // Just submitted
-  IN_PROGRESS   // At least one item being made
-  READY         // All items complete
-  PICKED_UP     // Customer collected
+// Lifecycle of one part (coffee or other) of an order.
+// Cancelling an order sets all non-null parts to CANCELLED in one operation.
+// A part moves off the pickup display once it reaches PICKED_UP.
+enum PartStatus {
+  PENDING      // submitted, not yet started
+  IN_PROGRESS  // barista is working on this part
+  DONE         // ready for pickup — appears on pickup display
+  PICKED_UP    // collected — removed from pickup display
   CANCELLED
-}
-
-enum OrderItemStatus {
-  PENDING
-  IN_PROGRESS
-  DONE
 }
 ```
 
@@ -109,9 +133,10 @@ enum OrderItemStatus {
 ### Events: Client → Server
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `order:item:start` | `{ orderId, itemId }` | Barista starts an item |
-| `order:item:done` | `{ orderId, itemId }` | Barista marks item complete |
-| `order:picked_up` | `{ orderId }` | Order collected, remove from display |
+| `order:part:start` | `{ orderId, part }` | Barista starts a part (`coffee` or `other`) |
+| `order:part:done` | `{ orderId, part }` | Barista marks a part complete |
+| `order:part:picked_up` | `{ orderId, part }` | One part collected — removed from display |
+| `order:cancel` | `{ orderId }` | Cancel order — sets all non-null parts to CANCELLED |
 | `view:join` | `{ room }` | Client joins a socket room on connect |
 
 ### Events: Server → Client
@@ -119,7 +144,6 @@ enum OrderItemStatus {
 |-------|---------|-------|
 | `order:placed` | `Order` (full) | `kitchen`, `order:{id}` |
 | `order:updated` | `Order` (full) | `kitchen`, `display`, `order:{id}` |
-| `order:ready` | `{ orderId, number }` | `display`, `order:{id}` |
 | `order:removed` | `{ orderId }` | `display` |
 | `menu:updated` | `MenuSnapshot` | `management` |
 
@@ -169,7 +193,13 @@ POST   /api/v1/auth/login          { password } → { token }
 
 ## Order number strategy
 
-Use a daily counter reset (001–999). Stored in a `DailyCounter` table with a date field. Readable by customers: "Your order is **042**". Wrap back to 001 after 999 or at midnight.
+Daily counter reset (1–999), stored in the `DailyCounter` table keyed on `YYYY-MM-DD`. Readable and speakable: "Your order is **42**". Wraps to 1 after 999 or on a new date. UUID as `id` handles uniqueness; the number is display-only.
+
+---
+
+## Module system
+
+All code uses **ESM** (`import` / `export`). Every `package.json` has `"type": "module"`. Local TypeScript imports use the `.js` extension — TypeScript resolves `.js` → `.ts`; tsx and Node.js need the `.js` at runtime. Node built-ins are imported with the `node:` prefix.
 
 ---
 

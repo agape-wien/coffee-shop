@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:\\\\\\\\order-app-new\" -type f ! -path \"*/.git/*\" ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" ! -path \"*/.turbo/*\")",
+      "Bash(ls -la \"C:\\\\\\\\order-app-new\")",
+      "Bash(ls -la \"C:\\\\\\\\order-app-new/docs\")",
+      "Bash(ls -la \"C:\\\\\\\\order-app-new/.claude\")",
+      "Bash(find \"C:\\\\\\\\order-app-new\" -maxdepth 7 -type d)"
+    ]
+  }
+}

@@ -19,27 +19,20 @@
 
 ## Phase 1 — Docker + monorepo scaffold
 
-**Goal:** `docker-compose -f docker-compose.dev.yml up` starts three containers and all three hot-reload.
+**Goal:** `docker compose up -d` starts three containers and all three hot-reload.
 
 Tasks:
-- [ ] `docker-compose.dev.yml` with services: `db`, `server`, `client`
+- [x] `docker-compose.yaml` — db + server, hot reload via bind mounts (`docker compose up -d`)
 - [ ] `docker-compose.yml` (production, no volumes, compiled builds)
 - [ ] `client/` — Vite + React + TypeScript scaffold (`npm create vite`)
-- [ ] `server/` — Node.js + TypeScript with `tsx` for hot reload
-- [ ] `packages/shared/` — empty TypeScript package, referenced by both
-- [ ] Root `package.json` with npm workspaces
-- [ ] `.env.example` with all required env vars
+- [x] `server/` — Node.js + TypeScript with `tsx watch` for hot reload
+- [x] `packages/shared/` — TypeScript types package (`@coffee/shared`)
+- [x] Root `package.json` with npm workspaces
+- [x] `.env.example` with all required env vars
+- [ ] Add `client` service to `docker-compose.yaml`
 - [ ] Vite proxy config: `/api` and `/socket.io` → server
 
-**Env vars needed:**
-```
-DATABASE_URL=postgresql://...
-JWT_SECRET=...
-APP_URL=http://localhost:5173
-ADMIN_PASSWORD=...   # single-credential auth for v1
-```
-
-**Deliverable:** All three containers run, frontend shows Vite default page, backend responds to `GET /health`.
+**Deliverable:** All three containers run, frontend shows Vite default page, backend responds to `GET /api/v1/health`.
 
 ---
 
@@ -48,11 +41,11 @@ ADMIN_PASSWORD=...   # single-credential auth for v1
 **Goal:** Schema matches `ARCHITECTURE.md`, migrations run cleanly, seed script populates a sample menu.
 
 Tasks:
-- [ ] `server/prisma/schema.prisma` — all models from architecture doc
-- [ ] Initial migration: `prisma migrate dev`
-- [ ] `server/prisma/seed.ts` — seed categories (Hot Drinks, Cold Drinks, Food), ~10 menu items, 5 tables
-- [ ] Prisma client exported from `server/src/db.ts` (singleton)
-- [ ] `DailyCounter` model for order numbers
+- [x] `server/prisma/schema.prisma` — all models (Category, MenuItem, Table, Order, OrderItem, DailyCounter)
+- [ ] Initial migration: `prisma migrate dev` (currently using `prisma db push` — migrate before schema stabilises)
+- [ ] `server/prisma/seed.ts` — seed categories (Coffee, Other), ~8 menu items with ee/me values, 5 tables
+- [x] Prisma client singleton — `server/src/lib/prisma.ts`
+- [x] `DailyCounter` model for order numbers
 
 **Do not skip the seed script.** Every developer on this project will thank you. It removes the "I have an empty database" problem on first run.
 
@@ -63,24 +56,26 @@ Tasks:
 **Goal:** Express server + Socket.io running, auth middleware, basic order flow wired.
 
 Tasks:
-- [ ] `server/src/index.ts` — Express + Socket.io init
+- [x] `server/src/index.ts` — Express + Socket.io init, port binding
+- [x] `server/src/socket/index.ts` — Socket.io init, `view:join` room handler
 - [ ] `server/src/middleware/auth.ts` — JWT verification middleware
 - [ ] `POST /api/v1/auth/login` — validate `ADMIN_PASSWORD`, return JWT
-- [ ] `GET /api/v1/health` — returns `{ ok: true, db: "connected" }`
+- [x] `GET /api/v1/health` — returns `{ ok: true }`
 - [ ] `GET /api/v1/menu` — full menu snapshot
 - [ ] `POST /api/v1/orders` — place order, emit `order:placed` to kitchen room
-- [ ] Socket.io room join handler (`view:join` event)
-- [ ] Socket.io handlers: `order:item:start`, `order:item:done`, `order:picked_up`
+- [ ] Socket.io handlers: `order:part:start`, `order:part:done`, `order:part:picked_up`, `order:cancel`
 - [ ] Order status transition logic in `server/src/services/order.service.ts`
 - [ ] Zod schemas for all incoming payloads
 
-**Order status machine (enforce in service, not in handlers):**
+**Part status machine (enforce in service, not in handlers):**
 ```
-PLACED → IN_PROGRESS (first item started)
-IN_PROGRESS → READY (last item done)
-READY → PICKED_UP (barista or customer confirms)
-Any → CANCELLED (management only)
+PENDING → IN_PROGRESS  (barista starts the part)
+IN_PROGRESS → DONE     (barista marks part complete — appears on pickup display)
+DONE → PICKED_UP       (customer collects — removed from pickup display)
+Any → CANCELLED        (order:cancel sets all non-null parts to CANCELLED)
 ```
+Each order has up to two independent parts (`coffeeStatus`, `otherStatus`).
+A part field is `null` when the order contains no items of that type.
 
 ---
 
@@ -89,7 +84,7 @@ Any → CANCELLED (management only)
 **Goal:** One source of truth for `Order`, `MenuItem`, `SocketEvent` etc.
 
 Tasks:
-- [ ] `packages/shared/src/types.ts` — all domain types
+- [x] `packages/shared/src/types.ts` — all domain types + socket payload shapes
 - [ ] `packages/shared/src/events.ts` — typed Socket.io event map
 - [ ] Both client and server import from `@coffee/shared`
 
@@ -126,9 +121,9 @@ Tasks:
 - [ ] Join `kitchen` socket room on mount
 - [ ] Display incoming orders as cards (ordered by time received)
 - [ ] Each card shows: order number, items with quantities and notes
-- [ ] Each item has a "Start" button → emits `order:item:start`
-- [ ] Each item has a "Done" button (visible after Start) → emits `order:item:done`
-- [ ] Order card auto-removes when all items are DONE
+- [ ] "Start" button on the coffee part → emits `order:part:start { part: 'coffee' }`
+- [ ] "Done" button (visible after Start) → emits `order:part:done { part: 'coffee' }`
+- [ ] Card auto-removes when `coffeeStatus` reaches DONE (handed off to pickup display)
 - [ ] Visual urgency indicator: orders waiting >5 min highlight in amber, >10 min in red
 - [ ] Sound notification on new order (optional, user-toggleable)
 
