@@ -7,8 +7,10 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 # Copy workspace manifests first — Docker caches this layer until any package.json changes.
+# client/ is included because Vite runs as Express middleware and needs its own packages.
 COPY package.json ./
 COPY server/package.json ./server/
+COPY client/package.json ./client/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN npm install

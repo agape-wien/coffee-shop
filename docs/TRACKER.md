@@ -7,11 +7,9 @@
 
 ## Current status
 
-**Phase:** Between Phase 1 and Phase 3 — scaffold done, client missing, backend bare-bones  
+**Phase:** Phases 1–2 complete, Phase 3 (backend foundation) is next  
 **Last updated:** 2026-05-06  
 **Active work:** Nothing in progress — session closed cleanly.
-
-> **Schema note (revised this session):** Order status is now tracked per-part (`coffeeStatus` / `otherStatus` on `Order`) using a single `PartStatus` enum. `OrderItem` has no status field. See decision log.
 
 ---
 
@@ -24,33 +22,35 @@
 - [x] Claude reference guide (tech stack, conventions, coding rules) — `CLAUDE.md`
 - [x] Project tracker (this file) — `docs/TRACKER.md`
 
-### Phase 1 — Docker + monorepo scaffold (partial)
+### Phase 1 — Docker + monorepo scaffold
 - [x] Root `package.json` with npm workspaces (`client`, `server`, `packages/shared`)
-- [x] `docker-compose.yaml` — single dev file, hot reload via bind mounts, `docker compose up -d`
+- [x] `docker-compose.yaml` — db + server, hot reload via bind mounts, `docker compose up -d`
 - [x] `server/Dockerfile.dev` — Node 25.9.0-alpine, OpenSSL fix, prisma generate baked in
 - [x] `server/` — Node.js + TypeScript, `tsx watch` hot reload, ESM throughout
 - [x] `packages/shared/` — TypeScript types package, exported as `@coffee/shared`
 - [x] `.env.example` — all required env vars documented
-- [ ] `client/` — Vite + React + TypeScript scaffold (**missing**)
-- [ ] Vite proxy config: `/api` and `/socket.io` → server (**missing**)
+- [x] `client/` — Vite + React + TypeScript scaffold (5 placeholder views: `/order`, `/barista`, `/counter`, `/pickup`, `/management`)
+- [x] Vite runs as Express middleware in dev — single port (3001), no proxy, no separate client container
+- [x] `server/prisma` bind-mounted so seed changes don't require image rebuild
+- [x] `.gitignore` — excludes `node_modules/`, `dist/`, `.vite/`, `.env`, build artifacts
 - [ ] `docker-compose.yml` — production variant (nginx, compiled builds) (**not started**)
 
-### Phase 2 — Database schema + Prisma (partial)
+### Phase 2 — Database schema + Prisma
 - [x] `server/prisma/schema.prisma` — full schema: Category, MenuItem, Table, Order, OrderItem, DailyCounter
 - [x] Prisma client singleton — `server/src/lib/prisma.ts`
 - [x] Schema applied to DB via `prisma db push` (runs on container start)
-- [ ] `server/prisma/seed.ts` — sample menu, categories, tables (**missing — do this before frontend work**)
+- [x] `server/prisma/seed.ts` — 2 categories, 7 coffee items, 5 other items, 5 tables; production guard; run with `npm run db:seed --workspace=server`
 - [ ] Proper migration files (`prisma migrate dev`) — deferred until schema stabilises
 
 ### Phase 3 — Backend foundation (partial)
-- [x] `server/src/index.ts` — HTTP server, Socket.io wired, port binding
-- [x] `server/src/app.ts` — Express, CORS, `/api/v1/health`
+- [x] `server/src/index.ts` — HTTP server, Socket.io wired, port binding, awaits async `createApp()`
+- [x] `server/src/app.ts` — Express, `/api/v1/health`, Vite middleware (dev) / static serving (prod)
 - [x] `server/src/socket/index.ts` — Socket.io init, `view:join` room handler
 - [ ] `server/src/middleware/auth.ts` — JWT verification (**missing**)
 - [ ] `POST /api/v1/auth/login` (**missing**)
 - [ ] `GET /api/v1/menu` (**missing**)
 - [ ] `POST /api/v1/orders` + `order:placed` socket emit (**missing**)
-- [ ] Socket handlers: `order:item:start`, `order:item:done`, `order:picked_up` (**missing**)
+- [ ] Socket handlers: `order:part:start`, `order:part:done`, `order:part:picked_up`, `order:cancel` (**missing**)
 - [ ] Order status service (`server/src/services/order.service.ts`) (**missing**)
 - [ ] Zod schemas for all payloads (**missing**)
 
@@ -62,23 +62,25 @@
 
 ## Next up — recommended order for next session
 
-**Priority 1 — finish the scaffold so the full stack runs:**
-1. `client/` scaffold — Vite + React + TypeScript (`npm create vite@latest`)
-2. Add `client` service to `docker-compose.yaml`
-3. Vite proxy config for `/api` and `/socket.io`
-4. Verify: `docker compose up -d`, hit `http://localhost:5173`, hit `http://localhost:3001/api/v1/health`
+**Start here — verify stack is still healthy:**
+```
+docker compose up -d
+curl http://localhost:3001/api/v1/health   # → {"ok":true}
+# visit http://localhost:3001/order in browser → React app loads
+```
 
-**Priority 2 — seed data (do before any frontend work):**
-5. `server/prisma/seed.ts` — 2 categories (Coffee, Other), ~8 menu items with realistic `ee`/`me` values, 5 tables
-6. Wire seed into `package.json` and run it
+**Priority 1 — complete Phase 3 (backend foundation):**
+1. `packages/shared/src/events.ts` — typed Socket.io event map (small, do first, Phase 4 task)
+2. `server/src/middleware/auth.ts` — JWT verification middleware
+3. `POST /api/v1/auth/login` — validate env `ADMIN_PASSWORD`, return signed JWT
+4. `GET /api/v1/menu` — return full `MenuSnapshot` (categories + items) from DB
+5. `POST /api/v1/orders` — create order, assign daily number from `DailyCounter`, emit `order:placed` to `kitchen` room
+6. `server/src/services/order.service.ts` — encapsulate status transition logic (enforce valid state machine)
+7. Socket handlers: `order:part:start`, `order:part:done`, `order:part:picked_up`, `order:cancel`
+8. Zod schemas for all incoming payloads (REST + Socket)
 
-**Priority 3 — backend foundation:**
-7. Auth middleware + `POST /api/v1/auth/login`
-8. `GET /api/v1/menu`
-9. `POST /api/v1/orders` (with order number generation from DailyCounter)
-10. Socket handlers for barista ops
-11. Order status service
-12. Zod schemas
+**Priority 2 — first real frontend view (once API is ready):**
+9. `GET /api/v1/menu` must be working before starting the Ordering view (Phase 5)
 
 ---
 
@@ -86,15 +88,15 @@
 
 | Phase | What | Status |
 |-------|------|--------|
-| 1 | Docker + monorepo scaffold | Partial — client missing |
-| 2 | Database schema + Prisma | Partial — seed missing |
+| 1 | Docker + monorepo scaffold | Complete (prod compose deferred to Phase 11) |
+| 2 | Database schema + Prisma | Complete (migrations deferred until schema stabilises) |
 | 3 | Backend foundation | Partial — routes + socket handlers missing |
 | 4 | Shared types | Partial — events.ts missing |
-| 5 | Ordering view | Not started |
-| 6 | Coffee Preparation view | Not started |
-| 7 | Coordinator view | Not started |
-| 8 | Pickup Display view | Not started |
-| 9 | Management view | Not started |
+| 5 | Ordering view (`/order`) | Not started |
+| 6 | Barista view (`/barista`) | Not started |
+| 7 | Counter view (`/counter`) | Not started |
+| 8 | Pickup Display (`/pickup`) | Not started |
+| 9 | Management view (`/management`) | Not started |
 | 10 | QR / mobile polish | Not started |
 | 11 | Production hardening | Not started |
 
@@ -106,22 +108,21 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
-| Order status model | Part-based (`coffeeStatus` / `otherStatus` on `Order`, `PartStatus` enum, no `OrderItem.status`) | Original design had both `Order.status` and `OrderItem.status`. Revised: baristas act on whole parts (all coffees, all others), not individual items. PICKED_UP is per-part — one part can be collected while the other is still on the display. No order-level status needed; CANCELLED is just `PartStatus.CANCELLED` set on all non-null parts. Simpler schema, no derived aggregates to keep in sync. |
-| Real-time communication | Socket.io + REST hybrid | Socket for live push (orders, status changes); REST for management CRUD (simpler, cacheable, standard auth patterns). Polling was rejected — adds latency and load for no benefit when Socket.io is already in the stack. |
-| Frontend framework | React 18 + Vite + TypeScript | Vite for fast DX; TypeScript for type safety across the monorepo; MUI v6 for accessible, responsive components without building a design system from scratch. |
-| Database | PostgreSQL via Prisma | Relational model is a natural fit for orders with line items and categories. Prisma enforces type-safe queries and removes raw SQL risk. No NoSQL — the data relationships are too structured. |
-| State management | Zustand | Lightweight with no boilerplate; integrates cleanly with Socket.io listener patterns; avoids Redux ceremony for a project of this size. |
-| Auth | JWT, single admin credential (v1) | Multi-user auth is out of scope for v1. Single password → JWT keeps the implementation minimal while still being stateless and secure for HTTP. |
-| Order numbers | Daily counter 1–999, keyed by YYYY-MM-DD | Human-readable and speakable ("order 42"). Short enough to display large. Daily reset keeps numbers low. UUID handles uniqueness; number is display-only. |
-| Containerization | Docker + Docker Compose | Reproducible environment across machines. Dev compose uses volume mounts for hot reload; prod compose compiles to static files served by nginx. |
-| Hot reload (dev) | `tsx watch` (server) + Vite HMR (client) | Best DX in their respective ecosystems. No custom watch scripts needed. |
-| Order modifiers (size, milk, etc.) | Free-text `notes` field only in v1 | Full modifier system (options, pricing rules, combos) is a significant scope increase. Notes field covers 90% of real-world needs at a small coffee shop. Deferred to Phase 2. |
-| Payment | Out of scope | Adds regulatory, security, and UX complexity that is disproportionate to the v1 goal of demonstrating the ordering and barista workflow. |
-| Image handling for menu items | URL field only (v1) | File upload infrastructure (storage bucket, serving, resizing) is non-trivial. An `imageUrl` field allows linking to existing images without building upload infrastructure. Upload support deferred to Phase 2. |
-| Events / sessions | Dropped for v1 | `createdAt` on Order is sufficient for date-based grouping and reporting. Events would require workflow enforcement (open before orders, close at end of day) with no v1 reporting payoff. |
-| Price on MenuItem | Dropped for v1 | The shop isn't charging for orders yet. A `Decimal` price field will be added when payment is in scope. |
-| Customer model | Not added | Push notifications use the `order:{id}` socket room — the client joins after placing. No Customer entity needed. Kiosk orders: `tableId = null` on Order. |
-| Barista ops | Socket.io events, not REST | `order:item:start` and `order:item:done` are Socket.io client→server events. REST is for placement and management CRUD only. |
+| Order status model | Part-based (`coffeeStatus` / `otherStatus` on `Order`, `PartStatus` enum, no `OrderItem.status`) | Baristas act on whole parts (all coffees, all others), not individual items. PICKED_UP is per-part — one part can be collected while the other is still on the display. No order-level status needed; CANCELLED sets all non-null parts. Simpler schema, no derived aggregates to sync. |
+| Real-time communication | Socket.io + REST hybrid | Socket for live push (orders, status changes); REST for management CRUD (simpler, cacheable, standard auth). Polling rejected — adds latency and load for no benefit when Socket.io is already in the stack. |
+| Frontend framework | React 18 + Vite + TypeScript + MUI v6 | Vite for fast DX; TypeScript for type safety across the monorepo; MUI v6 for accessible, responsive components without building a design system from scratch. |
+| Client/server serving | Vite as Express middleware (dev); `express.static` from `client/dist` (prod) | Single origin — frontend and API both on port 3001. No separate client container. No CORS needed for the browser client. React Router handles all non-API paths; Express registers API routes first so `/api/v1/*` takes priority. |
+| Screen naming | `/barista`, `/counter` (dropped `/prep`, `/coordinator`) | `/barista` — both prep person and finishing barista share one screen (two panels, one role per panel). `/counter` — person is stationary at the counter; "runner" was rejected because it implies moving to tables. |
+| Two-panel layout | Orientation-aware (`useMediaQuery('(orientation: landscape)')`) not width breakpoints | Staff rotate Kindle tablets mid-shift; orientation is the correct signal. Portrait → vertical stack, landscape → side by side. Width breakpoints misbehave when a phone is held sideways. |
+| Counter + pickup display | Counter view (`/counter`) joins both `kitchen` and `display` rooms | Counter person manages other-item preparation (kitchen room) and the pickup display (display room). Joining both rooms from one connection handles all relevant events without separate join per panel. |
+| Pickup display format | "123 C" and "123 O" (Coffee / Other) | Parts shown and dismissed independently. "T" (tea) rejected — "Other" covers all non-coffee items. |
+| Database | PostgreSQL via Prisma | Relational model fits orders with line items and categories. Prisma enforces type-safe queries and removes raw SQL risk. |
+| State management | Zustand | Lightweight, no boilerplate, integrates cleanly with Socket.io listener patterns. |
+| Auth | JWT, single admin credential (v1) | Multi-user auth out of scope for v1. Single password → JWT is minimal, stateless, secure for HTTP. |
+| Order numbers | Daily counter 1–999, keyed by YYYY-MM-DD | Human-readable ("order 42"). Daily reset keeps numbers short. UUID handles uniqueness; number is display-only. |
+| Containerization | Docker + Docker Compose (dev: db + server only) | Reproducible environment. Dev uses volume mounts for hot reload. No separate client container — Vite runs as Express middleware. |
+| Hot reload (dev) | `tsx watch` (server) + Vite HMR via middleware (client) | Single process, single port. Vite middleware mode provides full HMR on the same origin as the API. |
+| Seed data | Dev-only, wipes and recreates on each run; production guard throws if `NODE_ENV=production` | Clean slate on each dev reseed. Guard prevents accidental data loss on prod. |
 | Module system | ESM (`import`/`export`) throughout | All `package.json` files have `"type": "module"`. Local TS imports use `.js` extension (Node ESM requirement). |
-| Dev schema management | `prisma db push` on container start | No migration files during early dev. Schema syncs automatically on restart. Migrate to `prisma migrate dev` when schema stabilises before frontend work begins. |
-| Alpine + Prisma | `openssl` via apk + `linux-musl-openssl-3.0.x` binaryTarget | Alpine ships without OpenSSL; Prisma's query engine dynamically links against it. Both the apk install and the binaryTarget are required — one without the other will fail. |
+| Dev schema management | `prisma db push` on container start | No migration files during early dev. Migrate to `prisma migrate dev` before schema stabilises and frontend work begins. |
+| Alpine + Prisma | `openssl` via apk + `linux-musl-openssl-3.0.x` binaryTarget | Alpine ships without OpenSSL; Prisma's query engine dynamically links against it. Both required — one without the other fails. |

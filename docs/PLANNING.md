@@ -8,8 +8,8 @@
 | 3 | Backend foundation (Express + Socket.io) | Medium |
 | 4 | Shared types package | Low |
 | 5 | Ordering view | High |
-| 6 | Coffee Preparation view | Medium |
-| 7 | Coordinator view | Medium |
+| 6 | Barista view (`/barista`) | Medium |
+| 7 | Counter view (`/counter`) | Medium |
 | 8 | Pickup Display view | Low |
 | 9 | Management view | High |
 | 10 | QR / mobile polish | Medium |
@@ -19,20 +19,19 @@
 
 ## Phase 1 — Docker + monorepo scaffold
 
-**Goal:** `docker compose up -d` starts three containers and all three hot-reload.
+**Goal:** `docker compose up -d` starts two containers (db + server) and both hot-reload. Vite runs as Express middleware — no separate client container.
 
 Tasks:
 - [x] `docker-compose.yaml` — db + server, hot reload via bind mounts (`docker compose up -d`)
 - [ ] `docker-compose.yml` (production, no volumes, compiled builds)
-- [ ] `client/` — Vite + React + TypeScript scaffold (`npm create vite`)
+- [x] `client/` — Vite + React + TypeScript scaffold, served via Express middleware
 - [x] `server/` — Node.js + TypeScript with `tsx watch` for hot reload
 - [x] `packages/shared/` — TypeScript types package (`@coffee/shared`)
 - [x] Root `package.json` with npm workspaces
 - [x] `.env.example` with all required env vars
-- [ ] Add `client` service to `docker-compose.yaml`
-- [ ] Vite proxy config: `/api` and `/socket.io` → server
+- [x] Vite runs as Express middleware in dev (single port, no proxy needed)
 
-**Deliverable:** All three containers run, frontend shows Vite default page, backend responds to `GET /api/v1/health`.
+**Deliverable:** Both containers run, `localhost:3001/order` serves the React app, `localhost:3001/api/v1/health` returns 200.
 
 ---
 
@@ -43,7 +42,7 @@ Tasks:
 Tasks:
 - [x] `server/prisma/schema.prisma` — all models (Category, MenuItem, Table, Order, OrderItem, DailyCounter)
 - [ ] Initial migration: `prisma migrate dev` (currently using `prisma db push` — migrate before schema stabilises)
-- [ ] `server/prisma/seed.ts` — seed categories (Coffee, Other), ~8 menu items with ee/me values, 5 tables
+- [x] `server/prisma/seed.ts` — 2 categories, 7 coffee + 5 other items, 5 tables; production guard; `npm run db:seed --workspace=server`
 - [x] Prisma client singleton — `server/src/lib/prisma.ts`
 - [x] `DailyCounter` model for order numbers
 
@@ -112,37 +111,46 @@ Tasks:
 
 ---
 
-## Phase 6 — Coffee Preparation view
+## Phase 6 — Barista view
 
-The barista's "what to make" screen. Typically a tablet mounted near the espresso machine.
+Shared screen for two roles: the prep person (works the espresso machine/grinder) and the barista (adds milk, finishes drinks). One URL, one screen, two panels — each person naturally owns one panel.
 
 Tasks:
-- [ ] Route: `/prep`
+- [ ] Route: `/barista`
 - [ ] Join `kitchen` socket room on mount
-- [ ] Display incoming orders as cards (ordered by time received)
-- [ ] Each card shows: order number, items with quantities and notes
-- [ ] "Start" button on the coffee part → emits `order:part:start { part: 'coffee' }`
-- [ ] "Done" button (visible after Start) → emits `order:part:done { part: 'coffee' }`
-- [ ] Card auto-removes when `coffeeStatus` reaches DONE (handed off to pickup display)
-- [ ] Visual urgency indicator: orders waiting >5 min highlight in amber, >10 min in red
-- [ ] Sound notification on new order (optional, user-toggleable)
+- [ ] Two-panel orientation-aware layout (`useMediaQuery('(orientation: landscape)')`)
+- [ ] **Left/top panel — PENDING coffee orders (prep person's domain):**
+  - Cards ordered by time received; each shows order number, coffee items with quantities and notes
+  - Tapping a card emits `order:part:start { orderId, part: 'coffee' }` → card moves to right panel
+  - Visual urgency: amber at >5 min waiting, red at >10 min
+- [ ] **Right/bottom panel — IN_PROGRESS coffee orders (barista's domain):**
+  - Tapping a card emits `order:part:done { orderId, part: 'coffee' }` → card disappears (DONE, now on pickup display)
+  - Barista can glance at left panel to anticipate upcoming milk requirements
+- [ ] Sound notification on new order arriving in left panel (user-toggleable)
+
+**Key UX insight:** The prep person and barista share one device but own one panel each. Neither needs to navigate anywhere — their work is always visible.
 
 ---
 
-## Phase 7 — Coordinator/Barista Overview view
+## Phase 7 — Counter view
 
-A global dashboard. Not for making drinks — for seeing the whole picture.
+The counter person handles all non-coffee items (teas, cold drinks, food) and owns the pickup display — they physically hand orders to customers and dismiss them from the display.
 
 Tasks:
-- [ ] Route: `/coordinator`
-- [ ] Join `kitchen` socket room on mount
-- [ ] All live orders in a kanban-style layout: columns by status
-  - **Placed** | **In Progress** | **Ready**
-- [ ] Each card: order number, table if applicable, age, item count, item statuses
-- [ ] Can manually mark order as PICKED_UP (management action)
-- [ ] Can cancel an order
-- [ ] Read-only view of what prep screen is doing
-- [ ] Auto-refreshes via Socket — no polling
+- [ ] Route: `/counter`
+- [ ] Join both `kitchen` and `display` socket rooms on mount
+- [ ] Two-panel orientation-aware layout
+- [ ] **Left/top panel — other items to prepare:**
+  - Shows orders with `otherStatus: PENDING` or `IN_PROGRESS`
+  - Tapping a PENDING card emits `order:part:start { orderId, part: 'other' }`
+  - A second tap (IN_PROGRESS) emits `order:part:done { orderId, part: 'other' }`
+  - Cards show order number, other items with quantities and notes
+- [ ] **Right/bottom panel — pickup display (DONE parts):**
+  - Shows all parts with status DONE: coffee as "**123 C**", other as "**123 O**"
+  - Coffee and other parts shown separately — each can be picked up independently
+  - Tapping a part emits `order:part:picked_up { orderId, part }` → removes that badge from the display
+  - This panel mirrors what customers see on `/pickup` — counter person and customers see the same state
+- [ ] Visual urgency on left panel (same amber/red thresholds as barista view)
 
 ---
 

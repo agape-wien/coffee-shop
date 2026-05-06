@@ -20,10 +20,14 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile.dev
-    # Bind-mount source directories so tsx watch picks up file changes without rebuilding.
-    # node_modules and prisma client stay inside the container — do not mount those.
+    # Bind-mount source directories so tsx watch / Vite HMR picks up file changes without rebuilding.
+    # node_modules and the generated Prisma client stay inside the container — do not mount those.
+    # server/prisma is mounted so seed.ts can be edited without a rebuild. If schema.prisma
+    # changes, a rebuild is still required to re-run prisma generate.
     volumes:
       - ./server/src:/app/server/src
+      - ./server/prisma:/app/server/prisma
+      - ./client:/app/client
       - ./packages/shared/src:/app/packages/shared/src
     ports:
       - "3001:3001"

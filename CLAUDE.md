@@ -35,13 +35,20 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 ```
 
 ## Views and routes
-| URL | View | Who sees it |
-|-----|------|-------------|
-| `/order` or `/order?table=5` | Ordering | Customers (kiosk + mobile) |
-| `/prep` | Coffee Preparation | Barista at the machine |
-| `/coordinator` | Coordinator/Barista Overview | Head barista, shift manager |
-| `/pickup` | Pickup Display | Customers waiting for orders |
-| `/management` | Management | Admin staff only (auth required) |
+| URL | View | Who sees it | Layout |
+|-----|------|-------------|--------|
+| `/order` or `/order?table={token}` | Ordering | Customers (kiosk + mobile + staff at table) | Left/top: menu by category — Right/bottom: current order/cart |
+| `/barista` | Barista | Prep person + barista (shared screen, two roles) | Left/top: PENDING coffee orders (prep picks these) — Right/bottom: IN_PROGRESS coffee orders (barista finishes these) |
+| `/counter` | Counter | Counter staff — handles non-coffee items and pickup | Left/top: PENDING + IN_PROGRESS other items — Right/bottom: DONE items on pickup display ("123 C" / "123 O"), tap to dismiss |
+| `/pickup` | Pickup Display | Customers waiting for orders (read-only big screen) | Single panel, large order numbers |
+| `/management` | Management | Admin staff only (auth required) | Standard CRUD UI |
+
+**Ordering modes (same route, different behaviour):**
+- `/order` — kiosk mode: table picker visible, full UI
+- `/order?table={qrToken}` — table mode: table auto-resolved from token, table picker hidden
+- No separate "staff mode" in v1 — staff use the kiosk screen
+
+**Responsive layout rule:** All two-panel views stack panels vertically in portrait orientation and place them side-by-side in landscape. Use `useMediaQuery('(orientation: landscape)')` — not width breakpoints — so the layout follows device rotation on tablets and phones.
 
 ## Socket.io conventions
 - Event names: `domain:action` — e.g. `order:placed`, `order:status_updated`
@@ -60,9 +67,19 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 - All shared types live in `packages/shared` — never duplicate type definitions
 - Zod for runtime validation at API boundaries (both REST and Socket.io payloads)
 - Prisma is the only way to touch the database — no raw SQL except in migrations
-- Document both the WHAT and the WHY — the what (behavior, contract, edge cases) forms the basis for user-facing documentation; the why (unconventional choices, hidden constraints, trade-offs) is institutional memory that prevents good decisions from being undone
-- Never write a what-comment that just restates the function name in prose — describe behavior and contract instead
-- Unconventional choices require a written justification, either as a code comment or in `docs/TRACKER.md` decision log
+- Unconventional choices require a written justification: a code comment or a `docs/TRACKER.md` decision log entry
+
+## Code documentation standard
+Every non-trivial function or module needs two things documented:
+
+**The what** — what does it do, what are its edge cases, what contract does it uphold? Write it clearly enough that it could go into a user-facing manual without rewriting. A new developer should understand what the code is responsible for without reading the implementation.
+
+**The why** — why was it written this way? Captures:
+- Unconventional choices: why approach A over the more obvious approach B
+- Hidden constraints: things the code assumes about the environment or database state that aren't visible from reading
+- Intentional trade-offs: performance vs. simplicity, correctness vs. speed
+
+The line to avoid: don't write a *what* comment that just restates the function name. `// Adds item to cart` above `addItemToCart()` adds nothing. Describe behaviour, edge cases, and contract instead.
 
 ## Module system
 - **ESM everywhere** — use `import` / `export` syntax. `require()` and `module.exports` are banned.
@@ -81,10 +98,18 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 # Start everything with hot reload
 docker compose up -d
 
-# Frontend: http://localhost:5173
-# Backend:  http://localhost:3001
-# DB:       localhost:5432
+# App (frontend + API): http://localhost:3001
+# DB:                   localhost:5432
 ```
+Vite runs as Express middleware in dev — there is no separate frontend container or port.
+
+## Collaboration rules
+This project is also a learning exercise. That changes how feedback works:
+
+- **Criticize ideas, don't just implement them.** If an approach is suboptimal, over-engineered, or has a better alternative — say so directly before writing code. Explain why. The goal is a better outcome AND a better understanding.
+- **No sugarcoating.** If something is wrong, say it's wrong. If a decision has a real downside, name the downside.
+- **Justify unconventional choices.** Whenever something non-standard is chosen, write the rationale in a code comment or in `docs/TRACKER.md`. Future sessions need to understand *why*, not just *what*.
+- **Push back on scope creep.** If a new idea conflicts with the design principles in `docs/SOUL.md` (speed, real conditions, failure visibility, progressive disclosure, real-time as feature), name the conflict.
 
 ## Session continuity
 
@@ -99,4 +124,4 @@ Update `docs/TRACKER.md` whenever a task is completed or the project state chang
 - `server/src/socket/index.ts` — Socket.io init and room management
 - `docs/ARCHITECTURE.md` — event schema, API endpoints, data flow diagrams
 - `docs/PLANNING.md` — phased implementation roadmap
-- `docs/SOUL.md` — design principles, collaboration rules, code documentation standard
+- `docs/SOUL.md` — UX design principles and view personalities

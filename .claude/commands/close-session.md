@@ -24,8 +24,8 @@ Close out the current working session by updating all project documentation to r
 ## 4. Update memory
 
 - Read `C:\Users\aonisor\.claude\projects\C--order-app-new\memory\MEMORY.md` and relevant memory files
-- Update `project_coffeeshop.md` to reflect the current implementation state (what files exist, what's working, what's next)
-- Save any new user preferences or feedback learned this session as appropriate memory entries
+- `project_coffeeshop.md` must stay lean — it is a thin pointer layer, not a state summary. Do NOT copy current phase, file lists, or "what's next" into it — that lives in `docs/TRACKER.md`. Only update it if a genuinely non-obvious architectural fact emerged this session that isn't captured in any project doc.
+- If the user expressed a new preference, gave feedback on your approach, or corrected something, save that as a `feedback` or `user` memory entry.
 - Do not duplicate information already in memory — update in place
 
 ## 5. Report back

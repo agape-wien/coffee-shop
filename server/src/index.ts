@@ -1,9 +1,10 @@
 import { createServer } from 'node:http'
-import app from './app.js'
+import { createApp } from './app.js'
 import { initSocket } from './socket/index.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 
+const app = await createApp()
 const httpServer = createServer(app)
 initSocket(httpServer)
 

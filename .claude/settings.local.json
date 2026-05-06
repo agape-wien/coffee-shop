@@ -5,7 +5,8 @@
       "Bash(ls -la \"C:\\\\\\\\order-app-new\")",
       "Bash(ls -la \"C:\\\\\\\\order-app-new/docs\")",
       "Bash(ls -la \"C:\\\\\\\\order-app-new/.claude\")",
-      "Bash(find \"C:\\\\\\\\order-app-new\" -maxdepth 7 -type d)"
+      "Bash(find \"C:\\\\\\\\order-app-new\" -maxdepth 7 -type d)",
+      "Bash(docker compose *)"
     ]
   }
 }

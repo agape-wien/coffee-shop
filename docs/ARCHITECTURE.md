@@ -3,19 +3,30 @@
 ## Communication model
 
 ```
-Customer / Kiosk         Barista screens          Pickup display
-     │                        │                        │
-     │  REST POST /orders      │                        │
-     ├────────────────────────►│  (server receives)     │
-     │                        │                        │
-     │◄── Socket order:placed ─┤── Socket order:placed ─┤
-     │    (own order room)     │    (kitchen room)      │    (display room)
-     │                        │                        │
-     │                        │  Socket order:part:start/done
-     │                        │◄─────────────────────── │ (barista taps part)
-     │                        │                        │
-     │◄── Socket order:updated─┤──────────────────────►─┤
-     │    (own order room)     │                        │  (part appears when DONE)
+Customer / Kiosk      Barista view (/barista)   Counter view (/counter)   Pickup display (/pickup)
+     │                      │                          │                        │
+     │  REST POST /orders    │                          │                        │
+     ├──────────────────────►│  (server receives)       │                        │
+     │                      │                          │                        │
+     │◄─ order:placed ───────┤──── order:placed ────────┤                        │
+     │   (order:{id} room)   │    (kitchen room)        │    (kitchen room)      │
+     │                      │                          │                        │
+     │                      │  order:part:start {coffee}                        │
+     │                      │◄── prep person taps PENDING card                  │
+     │                      │  (PENDING → IN_PROGRESS on left panel)            │
+     │                      │                          │                        │
+     │                      │  order:part:done {coffee}                         │
+     │                      │◄── barista taps IN_PROGRESS card                  │
+     │                      │  (IN_PROGRESS → DONE; card appears on display)    │
+     │                      │                          │                        │
+     │                      │           order:part:start/done {other}           │
+     │                      │           ◄── counter taps other items             │
+     │                      │                          │                        │
+     │                      │                 order:part:picked_up              │
+     │                      │                 ◄── counter taps DONE card        │
+     │                      │                          │                        │
+     │◄─ order:updated ──────┤─────── order:updated ───┤──── order:updated ─────┤
+     │   (order:{id} room)   │       (kitchen room)     │   (kitchen room)       │  (display room)
 ```
 
 Management screens use **REST only** — no Socket.io needed for CRUD. However, the server broadcasts `menu:updated` on the `management` socket room after any menu change so ordering screens can refresh without polling.
@@ -125,10 +136,12 @@ enum PartStatus {
 ### Rooms
 | Room | Subscribers |
 |------|-------------|
-| `kitchen` | Prep view, Coordinator view |
-| `display` | Pickup display |
+| `kitchen` | Barista view (`/barista`), Counter view (`/counter`) |
+| `display` | Pickup display (`/pickup`), Counter view (`/counter`) |
 | `order:{id}` | Customer's own device (tracks their order) |
 | `management` | Management screens |
+
+Note: Counter view joins both `kitchen` (to receive incoming orders and track other-part status) and `display` (to see and manage the pickup display panel).
 
 ### Events: Client → Server
 | Event | Payload | Description |
@@ -227,9 +240,10 @@ Avoid putting socket listeners in components directly — use a custom `useSocke
 
 ```yaml
 services:
-  db:       postgres:16-alpine
-  server:   Node.js backend (tsx watch in dev, compiled in prod)
-  client:   Vite dev server in dev, nginx serving dist/ in prod
+  db:      postgres:16-alpine
+  server:  Node.js backend — serves API + frontend from a single port (3001)
+           Dev:  tsx watch + Vite middleware (HMR, same origin)
+           Prod: tsx + express.static(client/dist)
 ```
 
-In dev: client and server both hot-reload. Vite proxies `/api` and `/socket.io` to the server container to avoid CORS complexity.
+There is no separate client container. Vite runs as Express middleware in dev (`middlewareMode: true`), so frontend and API share the same origin and port. No CORS needed for the browser client.
