@@ -1,3 +1,4 @@
+import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import OrderView from './views/OrderView.js'
 import BaristaView from './views/BaristaView.js'
@@ -7,6 +8,8 @@ import ManagementView from './views/ManagementView.js'
 
 export default function App() {
   return (
+    <>
+    <CssBaseline />
     <BrowserRouter>
       <Routes>
         <Route path="/order" element={<OrderView />} />
@@ -17,5 +20,6 @@ export default function App() {
         <Route path="/" element={<Navigate to="/order" replace />} />
       </Routes>
     </BrowserRouter>
+    </>
   )
 }

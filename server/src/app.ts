@@ -1,21 +1,42 @@
-import express, { type Express } from 'express'
+import express from 'express'
+import type { Express } from 'express'
 import path from 'node:path'
+import type { Server as IoServer } from 'socket.io'
+import type { ServerToClientEvents, ClientToServerEvents } from '@coffee/shared'
+import authRouter from './api/auth.js'
+import menuRouter from './api/menu.js'
+import tablesRouter from './api/tables.js'
+import { createOrdersRouter } from './api/orders.js'
 
-// Async factory so Vite middleware (dev) can be awaited before the server starts.
-export async function createApp(): Promise<Express> {
+// Sets up Express with JSON middleware only.
+// Routes are mounted separately in mountRoutes() so that the HTTP server and Socket.io
+// can be created first — the orders router needs a live io reference.
+export function createApp(): Express {
   const app = express()
   app.use(express.json())
+  return app
+}
 
+// Mounts all API routes and the frontend (Vite dev middleware or express.static in prod).
+// Must be called after initSocket() returns io, and before httpServer.listen().
+// API routes are registered before Vite so /api/v1/* is handled by Express first.
+export async function mountRoutes(
+  app: Express,
+  io: IoServer<ClientToServerEvents, ServerToClientEvents>
+): Promise<void> {
   app.get('/api/v1/health', (_req, res) => {
     res.json({ ok: true })
   })
+  app.use('/api/v1/auth', authRouter)
+  app.use('/api/v1/menu', menuRouter)
+  app.use('/api/v1/orders', createOrdersRouter(io))
+  app.use('/api/v1/tables', tablesRouter)
 
   const clientRoot = path.resolve(import.meta.dirname, '../../client')
 
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(clientRoot, 'dist')
     app.use(express.static(distPath))
-    // SPA fallback — all non-API paths return index.html for React Router
     app.get('/*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'))
     })
@@ -26,9 +47,6 @@ export async function createApp(): Promise<Express> {
       server: { middlewareMode: true },
       appType: 'spa',
     })
-    // Must come after API routes so /api/v1/* is handled by Express first
     app.use(vite.middlewares)
   }
-
-  return app
 }

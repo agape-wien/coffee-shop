@@ -22,4 +22,6 @@ RUN npm run db:generate --workspace=server
 
 # Source code is bind-mounted at runtime for hot reload (see docker-compose.yaml volumes).
 # prisma db push syncs the schema to the DB on every container start (no-op if schema unchanged).
-CMD ["sh", "-c", "npx prisma db push --schema=./server/prisma/schema.prisma && npx tsx watch server/src/index.ts"]
+# nodemon --legacy-watch enables chokidar polling, which is required on Windows Docker
+# bind mounts where inotify events from the Windows filesystem never reach the container.
+CMD ["sh", "-c", "npx prisma db push --schema=./server/prisma/schema.prisma && npx nodemon --legacy-watch --watch server/src --ext ts --exec 'npx tsx server/src/index.ts'"]

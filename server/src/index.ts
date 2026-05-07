@@ -1,12 +1,13 @@
 import { createServer } from 'node:http'
-import { createApp } from './app.js'
+import { createApp, mountRoutes } from './app.js'
 import { initSocket } from './socket/index.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 
-const app = await createApp()
+const app = createApp()
 const httpServer = createServer(app)
-initSocket(httpServer)
+const io = initSocket(httpServer)
+await mountRoutes(app, io)
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`)
