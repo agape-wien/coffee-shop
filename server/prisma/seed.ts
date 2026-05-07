@@ -113,7 +113,13 @@ async function main() {
   })
 
   // ── Tables ────────────────────────────────────────────────────────────────────
-  // qrToken is a rotatable UUID embedded in QR codes: /order?table={qrToken}
+  // Bar table: hardcoded id 'bar' — never a valid CUID/UUID so it's always distinguishable.
+  // qrToken 'bar' is equally safe: it won't collide with a UUID and the bar has no QR code.
+  // Regular tables use random qrTokens embedded in QR codes: /order?table={qrToken}
+
+  await prisma.table.create({
+    data: { id: 'bar', number: 0, label: 'Bar', qrToken: 'bar' },
+  })
 
   await prisma.table.createMany({
     data: [

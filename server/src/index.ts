@@ -7,7 +7,7 @@ const PORT = Number(process.env.PORT ?? 3001)
 const app = createApp()
 const httpServer = createServer(app)
 const io = initSocket(httpServer)
-await mountRoutes(app, io)
+await mountRoutes(app, io, httpServer)
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`)

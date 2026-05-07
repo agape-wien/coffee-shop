@@ -43,7 +43,7 @@ export default function MenuPanel() {
             key={cat.id}
             label={cat.name}
             id={`cat-tab-${i}`}
-            sx={{ minHeight: 80, fontSize: '1.2rem', textTransform: 'none', fontWeight: 'bold', px: 3 }}
+            sx={{ minHeight: 80, fontSize: '1.5rem', textTransform: 'none', fontWeight: 'bold', px: 3 }}
           />
         ))}
       </Tabs>
@@ -66,6 +66,11 @@ export default function MenuPanel() {
             quantity={cartMap.get(item.id) ?? 0}
             onAdd={() => addItem(item)}
           />
+        ))}
+        {/* Invisible spacers — same flex sizing as cards, height 0.
+            Prevents last-row cards from stretching to fill remaining width. */}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Box key={`spacer-${i}`} sx={{ flex: '1 1 150px', maxWidth: 220, height: 0 }} />
         ))}
       </Box>
     </Box>
@@ -93,13 +98,14 @@ function MenuItemCard({ item, quantity, onAdd }: MenuItemCardProps) {
       }}
     >
       {/* Full-card tap target — the whole card adds one more of this item */}
-      <CardActionArea onClick={onAdd} sx={{ height: '100%' }}>
-        <CardContent sx={{ textAlign: 'center' }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.3, pr: quantity > 0 ? 4 : 0 }}>
+      {/* '&&' doubles CSS specificity to beat ButtonBase's built-in inline-flex/center defaults */}
+      <CardActionArea onClick={onAdd} sx={{ height: '100%', '&&': { display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' } }}>
+        <CardContent sx={{ textAlign: 'center', width: '100%' }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.5rem', lineHeight: 1.3, pr: quantity > 0 ? 4 : 0 }}>
             {item.name}
           </Typography>
           {item.description && (
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.2rem', mt: 0.5 }}>
               {item.description}
             </Typography>
           )}

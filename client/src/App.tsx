@@ -10,7 +10,7 @@ export default function App() {
   return (
     <>
     <CssBaseline />
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/order" element={<OrderView />} />
         <Route path="/barista" element={<BaristaView />} />

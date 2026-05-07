@@ -1,10 +1,9 @@
-// Manages all state for the ordering flow: building a cart, submitting it, and tracking the
-// live status of the placed order. The store has two phases:
-//   1. Cart phase — placedOrder is null; staff add/edit items and place the order.
-//   2. Status phase — placedOrder is set; the UI switches to a live status view.
-// reset() transitions back to phase 1 and clears all state.
+// Manages all state for the ordering flow: building a cart and submitting it.
+// tableId always has a value — it defaults to BAR_TABLE_ID on mount and staff can change it.
+// QR mode overrides tableId via setTableId() after resolving the token.
 import { create } from 'zustand'
-import type { MenuItem, Order } from '@coffee/shared'
+import type { MenuItem } from '@coffee/shared'
+import { BAR_TABLE_ID } from '@coffee/shared'
 
 // Each cart entry is a separate line, not just a quantity on a menu item.
 // This is intentional: the same item can appear multiple times with different notes
@@ -19,7 +18,7 @@ export interface CartLine {
 
 interface OrderState {
   cart: CartLine[]
-  tableId: string | null
+  tableId: string
   orderNotes: string
   // Stored as a string because it comes from a text input. Empty string = let server assign
   // from the daily counter. '1'–'999' = staff override (used when switching paper blocks
@@ -27,28 +26,25 @@ interface OrderState {
   orderNumber: string
   submitting: boolean
   submitError: string | null
-  placedOrder: Order | null
 
   addItem: (item: MenuItem) => void
   removeItem: (lineId: string) => void
   setQuantity: (lineId: string, qty: number) => void
   setItemNotes: (lineId: string, notes: string) => void
-  setTableId: (id: string | null) => void
+  setTableId: (id: string) => void
   setOrderNotes: (notes: string) => void
   setOrderNumber: (n: string) => void
   submit: () => Promise<void>
-  updatePlacedOrder: (order: Order) => void
-  reset: () => void
+  resetCart: () => void
 }
 
 export const useOrderStore = create<OrderState>((set, get) => ({
   cart: [],
-  tableId: null,
+  tableId: BAR_TABLE_ID,
   orderNotes: '',
   orderNumber: '',
   submitting: false,
   submitError: null,
-  placedOrder: null,
 
   addItem: (item) =>
     set((state) => {
@@ -90,9 +86,9 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   setOrderNotes: (notes) => set({ orderNotes: notes }),
   setOrderNumber: (n) => set({ orderNumber: n }),
 
-  // Sends the cart to POST /api/v1/orders. On success, transitions to the status phase
-  // by setting placedOrder; on failure, sets submitError for display. The number field is
-  // omitted when empty so the server falls back to its daily counter.
+  // Sends the cart to POST /api/v1/orders. On success, clears the cart so staff can
+  // immediately start the next order. The number field is omitted when empty so the
+  // server falls back to its daily counter.
   submit: async () => {
     const { cart, tableId, orderNotes, orderNumber } = get()
     set({ submitting: true, submitError: null })
@@ -105,7 +101,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(tableId ? { tableId } : {}),
+          tableId,
           ...(orderNotes ? { notes: orderNotes } : {}),
           ...(parsedNumber !== undefined ? { number: parsedNumber } : {}),
           items: cart.map((l) => ({
@@ -115,23 +111,20 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           })),
         }),
       })
-      const json = await res.json() as { data?: Order; error?: string }
+      const json = await res.json() as { error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to place order')
-      set({ submitting: false, placedOrder: json.data! })
+      set({ submitting: false })
+      get().resetCart()
     } catch (err) {
       set({ submitting: false, submitError: err instanceof Error ? err.message : 'Unknown error' })
     }
   },
 
-  updatePlacedOrder: (order) => set({ placedOrder: order }),
-
-  reset: () => set({
+  resetCart: () => set({
     cart: [],
-    tableId: null,
     orderNotes: '',
     orderNumber: '',
     submitting: false,
     submitError: null,
-    placedOrder: null,
   }),
 }))

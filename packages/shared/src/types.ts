@@ -53,7 +53,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   number: number
-  tableId: string | null
+  tableId: string
   // Null when the order contains no items of that type
   coffeeStatus: PartStatus | null
   otherStatus: PartStatus | null

@@ -22,6 +22,7 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     const order = await orderService.startPart(r.data.orderId, r.data.part)
     if (!order) return
     io.to('kitchen').emit('order:updated', order)
+    io.to(`table:${order.tableId}`).emit('order:updated', order)
     io.to(`order:${order.id}`).emit('order:updated', order)
   })
 
@@ -32,6 +33,7 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     if (!order) return
     io.to('kitchen').emit('order:updated', order)
     io.to('display').emit('order:updated', order)
+    io.to(`table:${order.tableId}`).emit('order:updated', order)
     io.to(`order:${order.id}`).emit('order:updated', order)
   })
 
@@ -41,8 +43,8 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     const order = await orderService.pickedUpPart(r.data.orderId, r.data.part)
     if (!order) return
     io.to('kitchen').emit('order:updated', order)
+    io.to(`table:${order.tableId}`).emit('order:updated', order)
     io.to(`order:${order.id}`).emit('order:updated', order)
-    // If no part is still DONE, the order leaves the pickup display entirely
     if (order.coffeeStatus !== 'DONE' && order.otherStatus !== 'DONE') {
       io.to('display').emit('order:removed', { orderId: order.id })
     } else {
@@ -56,8 +58,8 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     const order = await orderService.cancelOrder(r.data.orderId)
     if (!order) return
     io.to('kitchen').emit('order:updated', order)
+    io.to(`table:${order.tableId}`).emit('order:updated', order)
     io.to(`order:${order.id}`).emit('order:updated', order)
-    // Always remove from display — if it wasn't there, the display ignores the event
     io.to('display').emit('order:removed', { orderId: order.id })
   })
 }

@@ -7,35 +7,21 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useMenuStore, retryMenu } from '../stores/menuStore.js'
 import { useOrderStore } from '../stores/orderStore.js'
 import { useTable } from '../hooks/useTable.js'
-import { getSocket } from '../hooks/useSocket.js'
 import MenuPanel from './order/MenuPanel.js'
 import CartPanel from './order/CartPanel.js'
 
 export default function OrderView() {
   const isLandscape = useMediaQuery('(orientation: landscape)')
   const { snapshot, loading: menuLoading, error: menuError, fetch: fetchMenu } = useMenuStore()
-  const { placedOrder, updatePlacedOrder, setTableId } = useOrderStore()
+  const { setTableId } = useOrderStore()
   const { table, loading: tableLoading, error: tableError, isTokenMode } = useTable()
 
-  // Fetch menu once on mount
   useEffect(() => { void fetchMenu() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Token mode: sync resolved table into the order store
+  // QR mode: lock the store's tableId to the resolved table
   useEffect(() => {
     if (table) setTableId(table.id)
   }, [table?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // After order is placed: join the order socket room and subscribe to status updates.
-  // The cleanup removes the listener when the order changes (e.g. after reset).
-  useEffect(() => {
-    if (!placedOrder) return
-    const socket = getSocket()
-    socket.emit('view:join', { room: `order:${placedOrder.id}` })
-    socket.on('order:updated', updatePlacedOrder)
-    return () => { socket.off('order:updated', updatePlacedOrder) }
-  }, [placedOrder?.id, updatePlacedOrder])
-
-  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (menuLoading || tableLoading) {
     return (
@@ -45,7 +31,6 @@ export default function OrderView() {
     )
   }
 
-  // Table token was present but invalid — block ordering rather than silently ignore
   if (tableError) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2, p: 4 }}>
@@ -57,7 +42,6 @@ export default function OrderView() {
     )
   }
 
-  // Menu failed — show retry rather than a dead screen
   if (menuError) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2, p: 4 }}>
@@ -70,8 +54,6 @@ export default function OrderView() {
     )
   }
 
-  // ── Main layout ───────────────────────────────────────────────────────────
-
   return (
     <Box
       sx={{
@@ -81,12 +63,10 @@ export default function OrderView() {
         overflow: 'hidden',
       }}
     >
-      {/* Menu panel — left in landscape, top in portrait */}
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         {snapshot && <MenuPanel />}
       </Box>
 
-      {/* Cart / order status panel — right in landscape, bottom in portrait */}
       <Box
         sx={{
           flexShrink: 0,

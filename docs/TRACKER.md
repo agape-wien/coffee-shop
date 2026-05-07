@@ -7,9 +7,9 @@
 
 ## Current status
 
-**Phase:** Phase 5 complete, Phase 6 next  
+**Phase:** Phase 5 complete (including ordering view redesign), Phase 6 next  
 **Last updated:** 2026-05-07  
-**Active work:** None — ordering view complete and browser-tested. Start Barista view next.
+**Active work:** None — ordering view redesigned and browser-tested. Start Barista view next.
 
 ---
 
@@ -62,16 +62,24 @@
 
 ### Phase 5 — Ordering view (`/order`)
 - [x] `useMenuStore` (Zustand) — fetch + cache menu on mount, `retryMenu()` helper
-- [x] `useOrderStore` (Zustand) — cart management, submit, `updatePlacedOrder`, `reset`
+- [x] `useOrderStore` (Zustand) — cart management, submit, `resetCart`
 - [x] `useSocket` hook — module-level singleton, typed with shared event maps
 - [x] `useTable` hook — resolves `?table=` QR token via `GET /api/v1/tables/:token`
 - [x] Two-panel layout in `OrderView` — orientation-aware (landscape: side-by-side, portrait: stacked)
 - [x] `MenuPanel` — category tabs, item cards (full-card tap target, quantity badge, blue border when in cart)
-- [x] `CartPanel` — cart lines with per-line notes and quantity controls, order notes, table picker (kiosk mode), order number field, live status view after submission
+- [x] `CartPanel` — two tabs (Order / Open), table selector above tabs
+- [x] Order tab — cart lines with per-line notes and quantity controls, order notes, order number field (bar only)
 - [x] Cart line grouping by notes — same item can appear as multiple lines; pressing the menu card increments the empty-notes line or creates a new one
-- [x] Order number override — field pre-filled from `GET /api/v1/orders/next-number`; override syncs the daily counter so auto-increment resumes from the new value
-- [x] `GET /api/v1/orders/next-number` — read-only counter preview (does not increment)
+- [x] Order number field — visible only for Bar table; pre-filled from `GET /api/v1/orders/next-number`; override syncs the daily counter
+- [x] Submit clears cart immediately — no blocking status screen; staff place the next order right away
+- [x] Open tab — live list of active orders for the selected table; real-time via `table:{tableId}` socket room
+- [x] Open tab order cards — item list, part status chips, "Delivered" button when a part is DONE
+- [x] Bar table — hardcoded `id = 'bar'`, seeded permanently, default selection on mount
+- [x] `tableId` NOT NULL on `Order` — null is a data bug; all orders belong to a table
+- [x] `GET /api/v1/orders/open?tableId=X` — returns orders with at least one active part
+- [x] `table:{tableId}` socket room — all order placed/updated events also emitted here
 - [x] Hot reload fixed for Windows Docker — `nodemon --legacy-watch` (server), Vite `usePolling: true` (client)
+- [x] Vite HMR WebSocket attached to existing HTTP server — fixes HMR in Docker single-port setup
 
 ---
 
@@ -122,6 +130,14 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 | Auth | JWT, single admin credential (v1) | Multi-user auth out of scope for v1. Single password → JWT is minimal, stateless, secure for HTTP. |
 | Order numbers | Daily counter 1–999, keyed by YYYY-MM-DD | Human-readable ("order 42"). Daily reset keeps numbers short. UUID handles uniqueness; number is display-only. |
 | Order number override | Staff can edit the number before placing; override syncs the daily counter | Paper blocks at the bar are numbered in batches of ~100. When a new block starts at e.g. 200, the override resets the counter so auto-increment gives 201, 202, … Staff are responsible for avoiding duplicates when jumping numbers. |
+| Bar table identity | Hardcoded `id = 'bar'` in the DB, seeded permanently | A non-CUID string is structurally impossible as a randomly generated ID, so `'bar'` is always distinguishable from real table IDs without a flag or enum. `BAR_TABLE_ID` constant in `@coffee/shared` so both client and server can reference it without a fetch. |
+| tableId NOT NULL | Every order must belong to a table; null is a data integrity bug | Removes the ambiguity of "null = kiosk". Bar orders use the Bar table. A null tableId in the DB means something went wrong, not that the order came from the bar. |
+| No separate kiosk concept | Staff mode and kiosk are the same view; the bar is just another table | Servers and bar staff all use `/order` with the table dropdown unlocked. Bar is the default selection. QR mode is the only variant — it locks the table and hides the dropdown. Removing "kiosk" as a concept simplifies the mental model and the code. |
+| Post-submit behaviour | Cart clears immediately after placing; no blocking status screen | The status screen blocked staff from placing the next order. Replaced with an Open tab that shows live order status non-intrusively alongside the cart. Staff can switch tabs to check status or mark orders as delivered. |
+| Open tab socket room | `table:{tableId}` room per table, not per-order `order:{id}` rooms | A table can have multiple concurrent orders. Subscribing per-order requires joining N rooms dynamically. A single `table:{tableId}` room receives all placed/updated events for that table, which is simpler to manage and matches the staff mental model ("I'm watching table 3"). |
+| Order number visibility | Order number field shown only when the Bar table is selected | Table orders don't need a spoken order number — the server delivers them and knows the table. The number field is a bar-specific workflow concern (paper ticket sync). |
+| Delivered button | Shown in the Open tab when a part is DONE; fires `order:part:picked_up` | Servers are responsible for marking table orders as delivered. Counter staff handle bar orders via the `/counter` view. Both ultimately use the same socket event — the difference is who initiates it. |
+| Vite HMR in Docker | `server.hmr.server = httpServer` passed to `createViteServer` | Docker only exposes port 3001. Without this, Vite spawns its HMR WebSocket on port 24678, which is unreachable from the browser. Attaching HMR to the existing HTTP server makes HMR traffic go through 3001. |
 | Cart line grouping | Same menu item can appear as multiple `CartLine` entries, keyed by `lineId` (UUID) | Allows per-line notes (e.g. 2× flat white cold milk + 1× flat white oat milk). Menu card press increments the empty-notes line for that item; once notes are filled in that line is locked and the next press creates a new line. Badge shows total across all lines. |
 | Order number field | Always visible in cart, pre-filled via `GET /api/v1/orders/next-number` | Staff need to verify the sequence before placing. The endpoint is a read-only preview — it does not increment the counter, so two concurrent previews return the same number (acceptable: number is display-only). |
 | Table/QR mode | Order number field and table picker hidden in token mode (`isTokenMode`) | In v1 the kiosk is the only real entry point; table/QR mode is built but not the primary flow. These fields are kiosk-staff concerns and don't belong on a customer self-order screen. |

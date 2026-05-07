@@ -1,5 +1,6 @@
 import express from 'express'
 import type { Express } from 'express'
+import type { Server as HttpServer } from 'node:http'
 import path from 'node:path'
 import type { Server as IoServer } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents } from '@coffee/shared'
@@ -20,9 +21,14 @@ export function createApp(): Express {
 // Mounts all API routes and the frontend (Vite dev middleware or express.static in prod).
 // Must be called after initSocket() returns io, and before httpServer.listen().
 // API routes are registered before Vite so /api/v1/* is handled by Express first.
+//
+// httpServer is passed so Vite can attach its HMR WebSocket to the same port (3001) rather
+// than spinning up a separate server on 24678. Without this, HMR fails in Docker because
+// only port 3001 is exposed to the host.
 export async function mountRoutes(
   app: Express,
-  io: IoServer<ClientToServerEvents, ServerToClientEvents>
+  io: IoServer<ClientToServerEvents, ServerToClientEvents>,
+  httpServer: HttpServer
 ): Promise<void> {
   app.get('/api/v1/health', (_req, res) => {
     res.json({ ok: true })
@@ -44,7 +50,7 @@ export async function mountRoutes(
     const { createServer: createViteServer } = await import('vite')
     const vite = await createViteServer({
       root: clientRoot,
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: { server: httpServer } },
       appType: 'spa',
     })
     app.use(vite.middlewares)

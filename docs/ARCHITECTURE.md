@@ -43,7 +43,7 @@ Source of truth: `server/prisma/schema.prisma`
 - **`ee` / `me` on MenuItem** — espresso-equivalent portions and milk-equivalent ml per serving. Used for supply tracking and reporting, not pricing.
 - **`type` on MenuItem is intentionally redundant** — it duplicates the category grouping but enables efficient single-index queries for "all coffee items across today's orders" without a join to `Category`.
 - **Events removed** — `createdAt` on `Order` is sufficient for date-based grouping and reporting.
-- **`tableId` nullable** — `null` means the order was placed from the main kiosk. Kiosk orders receive socket notifications via `order:{id}` room exactly like table orders; no separate Customer model is needed.
+- **`tableId` NOT NULL** — every order belongs to a table. Bar orders use the well-known Bar table (`id = 'bar'`). A `null` `tableId` is a data integrity bug, never a valid state. There is no separate kiosk concept — staff use the same ordering view and select the Bar table by default.
 - **PICKED_UP is per-part, not per-order** — a `coffeeStatus: PICKED_UP` order stays on the display if `otherStatus` is still `DONE`. Live queries filter on individual part statuses, not an order-level flag.
 
 ### Core tables
@@ -77,10 +77,10 @@ enum ItemType {
 }
 
 model Table {
-  id      String  @id @default(cuid())
+  id      String  @id @default(cuid())  // 'bar' for the Bar table; CUID for all others
   number  Int     @unique
   label   String?
-  qrToken String  @unique  // rotatable token embedded in QR URL
+  qrToken String  @unique  // rotatable token embedded in QR URL; 'bar' for the Bar table (no QR)
   orders  Order[]
 }
 
@@ -94,8 +94,8 @@ model DailyCounter {
 model Order {
   id           String      @id @default(cuid())
   number       Int         // human-readable 1–999, daily reset
-  tableId      String?     // null = kiosk order
-  table        Table?      @relation(fields: [tableId], references: [id])
+  tableId      String      // NOT NULL — 'bar' for bar orders, table CUID for table orders
+  table        Table       @relation(fields: [tableId], references: [id])
   // One status field per item type. Null when the order contains no items of that type.
   // There is no order-level status — everything is expressed through these two fields.
   coffeeStatus PartStatus? @default(PENDING)
@@ -138,10 +138,13 @@ enum PartStatus {
 |------|-------------|
 | `kitchen` | Barista view (`/barista`), Counter view (`/counter`) |
 | `display` | Pickup display (`/pickup`), Counter view (`/counter`) |
-| `order:{id}` | Customer's own device (tracks their order) |
+| `table:{tableId}` | Ordering view (`/order`) — Open tab for that table. `table:bar` for bar orders. |
+| `order:{id}` | Reserved for future per-order subscribers (e.g. customer-facing status) |
 | `management` | Management screens |
 
 Note: Counter view joins both `kitchen` (to receive incoming orders and track other-part status) and `display` (to see and manage the pickup display panel).
+
+Note: The ordering view joins `table:{tableId}` to receive all order events for the selected table in real time, avoiding per-order room subscriptions.
 
 ### Events: Client → Server
 | Event | Payload | Description |
@@ -155,8 +158,8 @@ Note: Counter view joins both `kitchen` (to receive incoming orders and track ot
 ### Events: Server → Client
 | Event | Payload | Rooms |
 |-------|---------|-------|
-| `order:placed` | `Order` (full) | `kitchen`, `order:{id}` |
-| `order:updated` | `Order` (full) | `kitchen`, `display`, `order:{id}` |
+| `order:placed` | `Order` (full) | `kitchen`, `table:{tableId}`, `order:{id}` |
+| `order:updated` | `Order` (full) | `kitchen`, `table:{tableId}`, `display` (on done/picked_up), `order:{id}` |
 | `order:removed` | `{ orderId }` | `display` |
 | `menu:updated` | `MenuSnapshot` | `management` |
 
@@ -168,10 +171,13 @@ Note: Counter view joins both `kitchen` (to receive incoming orders and track ot
 
 ### Public (no auth)
 ```
-POST   /api/v1/orders              Place an order
-GET    /api/v1/orders/:id          Poll order status (fallback, primary is Socket)
-GET    /api/v1/menu                Full menu snapshot for ordering screen
-GET    /api/v1/tables/:token       Resolve QR token → table info
+POST   /api/v1/orders                        Place an order (tableId required)
+GET    /api/v1/orders/open?tableId={id}      Open orders for a table (any part still active)
+GET    /api/v1/orders/next-number            Preview next auto-assigned order number (bar only)
+GET    /api/v1/orders/:id                    Poll order status (fallback, primary is Socket)
+GET    /api/v1/menu                          Full menu snapshot for ordering screen
+GET    /api/v1/tables                        All tables for the staff table picker
+GET    /api/v1/tables/:token                 Resolve QR token → table info
 ```
 
 ### Protected (Bearer JWT)

@@ -91,7 +91,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
 // contains at least one item of that type; otherwise they remain null and are invisible
 // to the kitchen queue and pickup display for that part.
 export async function placeOrder(input: {
-  tableId?: string
+  tableId: string
   number?: number
   items: { menuItemId: string; quantity: number; notes?: string }[]
   notes?: string
@@ -104,10 +104,8 @@ export async function placeOrder(input: {
     throw new Error('One or more menu items are unavailable or do not exist')
   }
 
-  if (input.tableId) {
-    const table = await prisma.table.findUnique({ where: { id: input.tableId } })
-    if (!table) throw new Error('Table not found')
-  }
+  const table = await prisma.table.findUnique({ where: { id: input.tableId } })
+  if (!table) throw new Error('Table not found')
 
   const menuItemMap = new Map(menuItems.map(m => [m.id, m]))
   const hasCoffee = input.items.some(i => menuItemMap.get(i.menuItemId)?.type === 'COFFEE')
@@ -131,7 +129,7 @@ export async function placeOrder(input: {
   const order = await prisma.order.create({
     data: {
       number,
-      tableId: input.tableId ?? null,
+      tableId: input.tableId,
       notes: input.notes ?? null,
       coffeeStatus: hasCoffee ? 'PENDING' : null,
       otherStatus: hasOther ? 'PENDING' : null,
