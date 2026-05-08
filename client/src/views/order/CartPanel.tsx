@@ -16,7 +16,7 @@
 // Order number field: rendered to the right of the tab bar, visible only when the Bar table
 // is selected. Pre-filled from GET /api/v1/orders/next-number. Staff can override it to sync
 // with a new paper block; overriding also resets the daily counter on the server.
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -36,6 +36,10 @@ import Tab from '@mui/material/Tab'
 import Badge from '@mui/material/Badge'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import AddIcon from '@mui/icons-material/Add'
+import CoffeeIcon from '@mui/icons-material/Coffee'
+import FastfoodIcon from '@mui/icons-material/Fastfood'
+import RemoveIcon from '@mui/icons-material/Remove'
 import type { Table, Order } from '@coffee/shared'
 import { BAR_TABLE_ID } from '@coffee/shared'
 import { useOrderStore } from '../../stores/orderStore.js'
@@ -47,8 +51,9 @@ interface Props {
 }
 
 export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
-  const { tableId, setTableId, orderNumber, setOrderNumber } = useOrderStore()
+  const { tableId, setTableId, orderNumber, setOrderNumber, submitting, submitError } = useOrderStore()
   const isBar = tableId === BAR_TABLE_ID
+  const prevSubmittingRef = useRef(submitting)
   // Bar is hardcoded as the first entry so the Select always has a valid option on first render,
   // before the async table fetch completes. API results are filtered to avoid a duplicate Bar row.
   const [tables, setTables] = useState<Table[]>([{ id: BAR_TABLE_ID, number: 0, label: 'Bar' }])
@@ -56,9 +61,12 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
   const [openOrders, setOpenOrders] = useState<Order[]>([])
   const [numberLoading, setNumberLoading] = useState(true)
 
-  // Pre-fill the order number field with the next auto number (bar orders only)
-  useEffect(() => {
+  // Pre-fill the order number field with the next auto number (bar orders only).
+  // Also re-fetches after a successful submit (detected by submitting going true→false
+  // with no error) so the field always shows the next number rather than clearing.
+  const fetchNextNumber = useCallback(() => {
     if (!isBar) { setNumberLoading(false); return }
+    setNumberLoading(true)
     fetch('/api/v1/orders/next-number')
       .then((r) => r.json())
       .then((json: { data?: { number: number } }) => {
@@ -66,7 +74,17 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
       })
       .catch(() => {})
       .finally(() => setNumberLoading(false))
-  }, [isBar]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isBar, setOrderNumber])
+
+  useEffect(() => { fetchNextNumber() }, [fetchNextNumber])
+
+  useEffect(() => {
+    const wasSubmitting = prevSubmittingRef.current
+    prevSubmittingRef.current = submitting
+    if (wasSubmitting && !submitting && !submitError && isBar) {
+      fetchNextNumber()
+    }
+  }, [submitting, submitError, isBar, fetchNextNumber])
 
   // Fetch table list (staff mode only — QR mode locks to the token table)
   useEffect(() => {
@@ -293,16 +311,16 @@ function CartLineItem({ line: l, onQuantity, onNotes }: CartLineItemProps) {
           <Button
             variant="outlined" size="small"
             onClick={() => onQuantity(l.quantity - 1)}
-            sx={{ minWidth: 48, minHeight: 48, px: 0, fontSize: 'var(--fs-primary)' }}
-          >−</Button>
+            sx={{ minWidth: 48, minHeight: 48, px: 0 }}
+          ><RemoveIcon /></Button>
           <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 'bold', fontSize: 'var(--fs-primary)' }}>
             {l.quantity}
           </Typography>
           <Button
             variant="outlined" size="small"
             onClick={() => onQuantity(l.quantity + 1)}
-            sx={{ minWidth: 48, minHeight: 48, px: 0, fontSize: 'var(--fs-primary)' }}
-          >+</Button>
+            sx={{ minWidth: 48, minHeight: 48, px: 0 }}
+          ><AddIcon /></Button>
         </Box>
       </Box>
       {showNotes && (
@@ -387,7 +405,8 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
               {order.coffeeStatus && order.coffeeStatus !== 'PICKED_UP' && order.coffeeStatus !== 'CANCELLED' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>☕ Coffee</Typography>
+                    <CoffeeIcon sx={{ fontSize: 'var(--fs-secondary)' }} />
+                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>Coffee</Typography>
                     <Chip
                       label={STATUS_LABEL[order.coffeeStatus] ?? order.coffeeStatus}
                       color={STATUS_COLOR[order.coffeeStatus] ?? 'default'}
@@ -409,7 +428,8 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
               {order.otherStatus && order.otherStatus !== 'PICKED_UP' && order.otherStatus !== 'CANCELLED' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>🛍 Other</Typography>
+                    <FastfoodIcon sx={{ fontSize: 'var(--fs-secondary)' }} />
+                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>Other</Typography>
                     <Chip
                       label={STATUS_LABEL[order.otherStatus] ?? order.otherStatus}
                       color={STATUS_COLOR[order.otherStatus] ?? 'default'}

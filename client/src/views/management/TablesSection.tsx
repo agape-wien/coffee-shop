@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -11,6 +12,8 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import { apiFetch } from './apiHelper.js'
 
 interface TableRow {
@@ -89,7 +92,7 @@ export default function TablesSection({ token }: { token: string }) {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Tables</Typography>
-        <Button variant="contained" size="small" onClick={() => setAddOpen(true)}>+ Table</Button>
+        <Button variant="contained" size="small" onClick={() => setAddOpen(true)} startIcon={<AddIcon />}>Table</Button>
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -114,11 +117,11 @@ export default function TablesSection({ token }: { token: string }) {
               ) : (
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button size="small" variant="outlined" onClick={() => void rotateQr(table)}>
-                    Rotate QR
+                    NEW QR CODE
                   </Button>
-                  <Button size="small" color="error" onClick={() => void deleteTable(table)}>
-                    Delete
-                  </Button>
+                  <IconButton size="small" color="error" onClick={() => void deleteTable(table)}>
+                    <DeleteForeverIcon />
+                  </IconButton>
                 </Box>
               )}
             </Box>

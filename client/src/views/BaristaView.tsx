@@ -140,16 +140,6 @@ export default function BaristaView() {
         <PanelHeader
           title="Pending"
           count={pending.length}
-          right={
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => setSoundEnabled((v) => !v)}
-              sx={{ fontSize: 'var(--fs-small)', minWidth: 0, textTransform: 'none' }}
-            >
-              {soundEnabled ? 'Sound: on' : 'Sound: off'}
-            </Button>
-          }
         />
         <OrderList orders={pending} emptyLabel="No pending orders" onTap={startOrder} />
       </Box>
@@ -184,7 +174,7 @@ function PanelHeader({ title, count, right }: {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           px: 2,
           py: 1.5,
           flexShrink: 0,

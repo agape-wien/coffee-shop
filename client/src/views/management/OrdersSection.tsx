@@ -5,8 +5,13 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Collapse from '@mui/material/Collapse'
+import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import CoffeeIcon from '@mui/icons-material/Coffee'
+import FastfoodIcon from '@mui/icons-material/Fastfood'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import { apiFetch } from './apiHelper.js'
 
 interface OrderItem {
@@ -26,8 +31,8 @@ interface OrderRow {
   items: OrderItem[]
 }
 
-const STATUS_COLOR: Record<string, 'default' | 'warning' | 'success' | 'error'> = {
-  PENDING: 'default',
+const STATUS_COLOR: Record<string, 'default' | 'primary' | 'warning' | 'success' | 'error'> = {
+  PENDING: 'primary',
   IN_PROGRESS: 'warning',
   DONE: 'success',
   PICKED_UP: 'default',
@@ -80,6 +85,13 @@ export default function OrdersSection({ token }: { token: string }) {
           onChange={(e) => setTo(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
+        <Tooltip title="Refresh">
+          <span>
+            <IconButton size="small" onClick={() => void load()} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
         {loading && <CircularProgress size={20} />}
       </Box>
 
@@ -103,10 +115,10 @@ export default function OrdersSection({ token }: { token: string }) {
                 <Typography variant="body2" sx={{ flex: 1 }}>{tableLabel(order)}</Typography>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                   {order.coffeeStatus && (
-                    <Chip label={`☕ ${order.coffeeStatus}`} size="small" color={STATUS_COLOR[order.coffeeStatus] ?? 'default'} />
+                    <Chip icon={<CoffeeIcon />} label={order.coffeeStatus} size="small" color={STATUS_COLOR[order.coffeeStatus] ?? 'default'} />
                   )}
                   {order.otherStatus && (
-                    <Chip label={`🛍 ${order.otherStatus}`} size="small" color={STATUS_COLOR[order.otherStatus] ?? 'default'} />
+                    <Chip icon={<FastfoodIcon />} label={order.otherStatus} size="small" color={STATUS_COLOR[order.otherStatus] ?? 'default'} />
                   )}
                 </Box>
                 <Typography variant="caption" color="text.secondary">

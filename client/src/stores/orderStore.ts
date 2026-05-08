@@ -117,7 +117,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   resetCart: () => set({
     cart: [],
-    orderNumber: '',
     submitting: false,
     submitError: null,
   }),

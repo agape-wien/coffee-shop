@@ -28,6 +28,9 @@ import Select from '@mui/material/Select'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
+import EditIcon from '@mui/icons-material/Edit'
 import { apiFetch } from './apiHelper.js'
 
 interface Category {
@@ -52,7 +55,7 @@ interface Item {
 
 const EMPTY_ITEM: Omit<Item, 'id' | 'categoryId'> = {
   name: '', description: '', imageUrl: '', available: true,
-  sortOrder: 0, type: 'COFFEE', ee: 0, me: 0,
+  sortOrder: 1, type: 'COFFEE', ee: 0, me: 0,
 }
 
 export default function MenuSection({ token }: { token: string }) {
@@ -87,7 +90,7 @@ export default function MenuSection({ token }: { token: string }) {
 
   const openAddCategory = () => {
     setCatName('')
-    setCatSort(String(categories.length))
+    setCatSort('1')
     setCatDialog({ open: true, editing: null })
   }
 
@@ -127,7 +130,7 @@ export default function MenuSection({ token }: { token: string }) {
   // ── Item actions ──
 
   const openAddItem = (categoryId: string) => {
-    setItemForm({ ...EMPTY_ITEM, categoryId, sortOrder: categories.find(c => c.id === categoryId)?.items.length ?? 0 })
+    setItemForm({ ...EMPTY_ITEM, categoryId, sortOrder: 1 })
     setItemDialog({ open: true, editing: null, categoryId })
   }
 
@@ -178,7 +181,7 @@ export default function MenuSection({ token }: { token: string }) {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Menu</Typography>
-        <Button variant="contained" size="small" onClick={openAddCategory}>+ Category</Button>
+        <Button variant="contained" size="small" onClick={openAddCategory} startIcon={<AddIcon />}>Category</Button>
       </Box>
 
       {categories.map((cat) => (
@@ -218,13 +221,13 @@ export default function MenuSection({ token }: { token: string }) {
                     color={item.type === 'COFFEE' ? 'warning' : 'default'}
                     variant="outlined"
                   />
-                  <IconButton size="small" onClick={() => openEditItem(item)}>✏️</IconButton>
-                  <IconButton size="small" onClick={() => void deleteItem(item)}>🗑</IconButton>
+                  <IconButton size="small" onClick={() => openEditItem(item)}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={() => void deleteItem(item)} color="error"><DeleteForeverIcon fontSize="small" /></IconButton>
                 </Box>
               </Box>
             ))}
             <Box sx={{ p: 1.5 }}>
-              <Button size="small" onClick={() => openAddItem(cat.id)}>+ Item</Button>
+              <Button size="small" onClick={() => openAddItem(cat.id)} startIcon={<AddIcon />}>Item</Button>
             </Box>
           </AccordionDetails>
         </Accordion>

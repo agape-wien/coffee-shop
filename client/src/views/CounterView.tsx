@@ -192,7 +192,7 @@ function PanelHeader({ title, count, right }: {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           px: 2,
           py: 1.5,
           flexShrink: 0,
