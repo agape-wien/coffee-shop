@@ -14,8 +14,9 @@
 // table. In QR mode the table is resolved from the URL token and locked.
 //
 // Order number field: rendered to the right of the tab bar, visible only when the Bar table
-// is selected. Pre-filled from GET /api/v1/orders/next-number. Staff can override it to sync
-// with a new paper block; overriding also resets the daily counter on the server.
+// is selected. Pre-filled from GET /api/v1/orders/next-number on mount and re-fetched after
+// every successful submit so the field always shows the next number. Staff can override it
+// to sync with a new paper block; overriding also resets the daily counter on the server.
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'

@@ -129,7 +129,7 @@ Tasks:
 - [x] **Right/bottom panel — IN_PROGRESS coffee orders (barista's domain):**
   - Tapping a card emits `order:part:done { orderId, part: 'coffee' }` → card disappears (DONE, now on pickup display)
   - Barista can glance at left panel to anticipate upcoming milk requirements
-- [x] Sound notification on new order arriving in left panel (user-toggleable; off by default)
+- [x] Sound notification on new order arriving in left panel (implemented; toggle button currently hidden — code preserved for future re-exposure)
 
 **Key UX insight:** The prep person and barista share one device but own one panel each. Neither needs to navigate anywhere — their work is always visible.
 

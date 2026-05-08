@@ -115,6 +115,9 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }
   },
 
+  // Intentionally does not reset orderNumber — CartPanel re-fetches the next number from
+  // the API immediately after submit. Clearing here would cause a blank field flash
+  // before the fetch resolves.
   resetCart: () => set({
     cart: [],
     submitting: false,

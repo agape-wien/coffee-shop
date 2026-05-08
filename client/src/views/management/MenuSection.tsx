@@ -53,6 +53,7 @@ interface Item {
   categoryId: string
 }
 
+// sortOrder starts at 1, not 0 — non-technical staff expect counting to start at 1.
 const EMPTY_ITEM: Omit<Item, 'id' | 'categoryId'> = {
   name: '', description: '', imageUrl: '', available: true,
   sortOrder: 1, type: 'COFFEE', ee: 0, me: 0,

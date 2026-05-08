@@ -7,9 +7,9 @@
 
 ## Current status
 
-**Phase:** Phase 9 complete  
+**Phase:** Phase 9 complete + UI polish  
 **Last updated:** 2026-05-08  
-**Active work:** None — all core views done. QR polish (Phase 10) and production hardening (Phase 11) remain.
+**Active work:** Nothing in progress — session closed cleanly.
 
 ---
 
@@ -125,7 +125,24 @@
 - [x] Login page (password → JWT → localStorage), sign-out clears token
 - [x] Three-tab shell: Menu (accordion with availability toggles + add/edit/delete dialogs), Tables (list + add/delete/rotate), Orders (date-range filter + expandable rows)
 
+## UI polish pass (post-Phase 9)
+
+- [x] `@mui/icons-material` added as client dependency; Docker image rebuilt
+- [x] MUI icons replacing emoji/text in all views: `DeleteForeverIcon`, `EditIcon`, `AddIcon`, `RemoveIcon`, `CoffeeIcon`, `FastfoodIcon`, `RefreshIcon`
+- [x] Management > Menu: `+ Category` and `+ Item` buttons use `AddIcon`; item row edit/delete use `EditIcon`/`DeleteForeverIcon`
+- [x] Management > Tables: "Rotate QR" renamed to "NEW QR CODE"; Delete text replaced with `DeleteForeverIcon` icon button; `+ Table` uses `AddIcon`
+- [x] Management > Orders: refresh button added; PENDING chip color changed to blue (`primary`)
+- [x] Barista / Counter: panel titles centred; sound toggle button hidden (code preserved for future use)
+- [x] Order view: order number field no longer clears after submit — re-fetches next number from API instead
+- [x] Sort order defaults to 1 (not 0) in add dialogs for both categories and items
+
 ## Next up — Phase 10: QR / Mobile polish
+
+1. Server-side QR PNG generation (`qrcode` package) — `GET /api/v1/management/tables/:id/qr`
+2. Management Tables tab: render QR inline + download button
+3. Test full ordering flow on a real mobile device at 390px
+4. Viewport lock on kiosk view (prevent scroll/zoom)
+5. PWA manifest for "Add to Home Screen" (optional)
 
 ---
 
@@ -188,3 +205,6 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 | Collapsible item notes | Notes field hidden by default; tap item name to expand; collapses on blur if left empty | Keeps the cart compact for the common case (no modifiers). Staff who need notes tap the name; the field disappears if unused, leaving no visual noise. |
 | Cart line notes — `CartLineItem` component | Each cart line is its own component with local `showNotes` state | Avoids tracking a `Set<lineId>` of open states in the parent. Each line owns its own open/closed state independently. |
 | Order number in tab row | `#` field rendered inline to the right of the Order/Open tabs (bar only) | Removes the number field from the scrollable cart body, where it was buried below the item list. Inline with tabs keeps it visible at all times while the Order tab is open. |
+| Order number field post-submit | `resetCart` does not clear `orderNumber`; CartPanel re-fetches from API instead | Clearing in the store caused a blank field flash before the fetch resolved. Keeping the old value visible until the new one arrives is less jarring for staff placing rapid orders. |
+| Sort order default | Add dialogs for categories and items default to `sortOrder: 1` | Non-technical staff expect counting to start at 1. Defaulting to 0 confused users who had to manually change it on every new item. |
+| Sound toggle hidden | `playBeep` and `soundEnabled` state kept in `BaristaView` but the UI button is not rendered | Feature was requested for future use but the current button placement was visually noisy. Preserving the logic means re-exposing it requires adding one JSX node, not rebuilding the feature. |

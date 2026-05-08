@@ -12,8 +12,9 @@
 // is fetched from GET /api/v1/orders/kitchen (all coffee orders that are PENDING or IN_PROGRESS).
 //
 // Visual urgency: cards get an amber border after 5 minutes and a red border after 10 minutes.
-// A 60-second interval keeps the borders live without per-card timers. Sound notification on
-// new PENDING orders is toggleable via a button in the Pending panel header.
+// A 60-second interval keeps the borders live without per-card timers.
+// Sound notification (Web Audio API beep) is implemented but the toggle button is currently
+// hidden — the state and playBeep logic remain so the feature can be re-exposed without rework.
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
