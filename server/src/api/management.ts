@@ -16,6 +16,7 @@ import type { Server as IoServer } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents, MenuSnapshot } from '@coffee/shared'
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
+import { setLanguage } from '../lib/adminConfig.js'
 
 const CategoryCreateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -310,6 +311,22 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
     }
+  })
+
+  // ─── Settings ────────────────────────────────────────────────────────────────
+
+  const LanguageSchema = z.object({
+    language: z.enum(['en', 'de', 'ro']),
+  })
+
+  router.put('/settings/language', async (req, res) => {
+    const result = LanguageSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: 'language must be one of: en, de, ro', code: 'VALIDATION_ERROR' })
+      return
+    }
+    await setLanguage(result.data.language)
+    res.json({ data: { ok: true } })
   })
 
   return router

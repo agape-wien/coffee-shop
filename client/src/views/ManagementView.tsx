@@ -17,6 +17,7 @@ import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import { useTranslation } from 'react-i18next'
 import MenuSection from './management/MenuSection.js'
 import TablesSection from './management/TablesSection.js'
 import OrdersSection from './management/OrdersSection.js'
@@ -35,6 +36,7 @@ export default function ManagementView() {
 // ─── Login page ───────────────────────────────────────────────────────────────
 
 function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
+  const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -51,12 +53,12 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
       })
       const json = await res.json() as { data?: { token: string }; error?: string }
       if (!res.ok || !json.data) {
-        setError(json.error ?? 'Login failed')
+        setError(json.error ?? t('management.loginFailed'))
         return
       }
       onLogin(json.data.token)
     } catch {
-      setError('Could not reach server')
+      setError(t('common.serverError'))
     } finally {
       setLoading(false)
     }
@@ -65,9 +67,9 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
       <Box sx={{ width: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Typography variant="h5" fontWeight="bold" textAlign="center">Management</Typography>
+        <Typography variant="h5" fontWeight="bold" textAlign="center">{t('management.title')}</Typography>
         <TextField
-          label="Password" type="password" value={password}
+          label={t('management.password')} type="password" value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') void submit() }}
           error={!!error} helperText={error} autoFocus fullWidth
@@ -76,7 +78,7 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
           variant="contained" size="large" fullWidth
           onClick={() => void submit()} disabled={loading || !password}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : t('management.signIn')}
         </Button>
       </Box>
     </Box>
@@ -88,20 +90,21 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
 type Section = 'menu' | 'tables' | 'orders' | 'settings'
 
 function ManagementShell({ token, onLogout }: { token: string; onLogout: () => void }) {
+  const { t } = useTranslation()
   const [section, setSection] = useState<Section>('menu')
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <AppBar position="sticky" color="default" elevation={1}>
         <Toolbar variant="dense">
-          <Typography fontWeight="bold" sx={{ mr: 3 }}>Management</Typography>
+          <Typography fontWeight="bold" sx={{ mr: 3 }}>{t('management.title')}</Typography>
           <Tabs value={section} onChange={(_, v: Section) => setSection(v)} sx={{ flex: 1 }}>
-            <Tab label="Menu" value="menu" />
-            <Tab label="Tables" value="tables" />
-            <Tab label="Orders" value="orders" />
-            <Tab label="Settings" value="settings" />
+            <Tab label={t('management.tabs.menu')} value="menu" />
+            <Tab label={t('management.tabs.tables')} value="tables" />
+            <Tab label={t('management.tabs.orders')} value="orders" />
+            <Tab label={t('management.tabs.settings')} value="settings" />
           </Tabs>
-          <Button size="small" onClick={onLogout} color="inherit">Sign out</Button>
+          <Button size="small" onClick={onLogout} color="inherit">{t('management.signOut')}</Button>
         </Toolbar>
       </AppBar>
 

@@ -24,6 +24,7 @@ import CardContent from '@mui/material/CardContent'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTranslation } from 'react-i18next'
 import type { Order } from '@coffee/shared'
 import { getSocket } from '../hooks/useSocket.js'
 
@@ -54,6 +55,7 @@ function playBeep(): void {
 }
 
 export default function BaristaView() {
+  const { t } = useTranslation()
   const isLandscape = useMediaQuery('(orientation: landscape)')
   const [orders, setOrders] = useState<Order[]>([])
   const [soundEnabled, setSoundEnabled] = useState(false)
@@ -139,10 +141,10 @@ export default function BaristaView() {
         }}
       >
         <PanelHeader
-          title="Pending"
+          title={t('barista.pending')}
           count={pending.length}
         />
-        <OrderList orders={pending} emptyLabel="No pending orders" onTap={startOrder} />
+        <OrderList orders={pending} emptyLabel={t('barista.noPending')} onTap={startOrder} />
       </Box>
 
       <Box
@@ -155,8 +157,8 @@ export default function BaristaView() {
           flexDirection: 'column',
         }}
       >
-        <PanelHeader title="In Progress" count={inProgress.length} />
-        <OrderList orders={inProgress} emptyLabel="Nothing in progress" onTap={doneOrder} />
+        <PanelHeader title={t('barista.inProgress')} count={inProgress.length} />
+        <OrderList orders={inProgress} emptyLabel={t('barista.noneInProgress')} onTap={doneOrder} />
       </Box>
     </Box>
   )

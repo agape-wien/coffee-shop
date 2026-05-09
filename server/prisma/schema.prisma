@@ -18,6 +18,7 @@ datasource db {
 model AdminConfig {
   id           String @id @default("singleton")
   passwordHash String
+  language     String @default("en")
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────

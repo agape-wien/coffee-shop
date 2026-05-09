@@ -1,0 +1,136 @@
+{
+  "common": {
+    "cancel": "Anulare",
+    "save": "Salvare",
+    "add": "Adăugare",
+    "edit": "Editare",
+    "delete": "Ștergere",
+    "bar": "Bar",
+    "table": "Masa {{number}}",
+    "tableWithLabel": "Masa {{number}} — {{label}}",
+    "coffee": "Cafea",
+    "other": "Altele",
+    "serverError": "Nu s-a putut contacta serverul"
+  },
+  "status": {
+    "PENDING": "În așteptare",
+    "IN_PROGRESS": "În preparare…",
+    "DONE": "Gata!",
+    "PICKED_UP": "Livrat",
+    "CANCELLED": "Anulat"
+  },
+  "barista": {
+    "pending": "În așteptare",
+    "inProgress": "În lucru",
+    "noPending": "Nicio comandă în așteptare",
+    "noneInProgress": "Nimic în lucru"
+  },
+  "counter": {
+    "prepare": "Pregătire",
+    "readyForPickup": "Gata de ridicare",
+    "nothingToPrepare": "Nimic de pregătit",
+    "noOrdersReady": "Nicio comandă gata"
+  },
+  "pickup": {
+    "noOrders": "Nicio comandă gata încă"
+  },
+  "order": {
+    "qrExpired": "Link-ul QR poate fi expirat. Rugați un angajat să rescaneze masa.",
+    "menuUnavailable": "Meniu indisponibil",
+    "tryAgain": "Încearcă din nou",
+    "tableLabel": "Masă",
+    "orderTab": "Comandă",
+    "openTab": "Active",
+    "yourOrder": "Comanda ta",
+    "itemCount_one": "{{count}} produs",
+    "itemCount_few": "{{count}} produse",
+    "itemCount_other": "{{count}} de produse",
+    "addItems": "Adaugă produse din meniu",
+    "notesPlaceholder": "Note (ex. lapte de ovăz, fără zahăr)",
+    "placeOrder": "Plasează comanda",
+    "noOpenOrders": "Nicio comandă activă",
+    "deliver": "Livrare"
+  },
+  "management": {
+    "title": "Management",
+    "password": "Parolă",
+    "signIn": "Autentificare",
+    "loginFailed": "Autentificare eșuată",
+    "signOut": "Deconectare",
+    "tabs": {
+      "menu": "Meniu",
+      "tables": "Mese",
+      "orders": "Comenzi",
+      "settings": "Setări"
+    },
+    "menu": {
+      "title": "Meniu",
+      "addCategory": "Categorie",
+      "addItem": "Produs",
+      "itemCount_one": "({{count}} produs)",
+      "itemCount_few": "({{count}} produse)",
+      "itemCount_other": "({{count}} de produse)",
+      "noCategories": "Nicio categorie — adaugă una pentru a începe.",
+      "editCategory": "Editare categorie",
+      "addCategoryTitle": "Adăugare categorie",
+      "name": "Nume",
+      "sortOrder": "Ordine sortare",
+      "editItem": "Editare produs",
+      "addItemTitle": "Adăugare produs",
+      "description": "Descriere",
+      "imageUrl": "URL imagine",
+      "type": "Tip",
+      "category": "Categorie",
+      "espressoPortions": "Porții espresso (ee)",
+      "milkMl": "Lapte ml (me)",
+      "deleteCategoryConfirm": "Ștergeți categoria \"{{name}}\"? Aceasta este permanentă.",
+      "deleteItemConfirm": "Ștergeți \"{{name}}\"? Aceasta este permanentă.",
+      "deleteFailed": "Ștergere eșuată"
+    },
+    "tables": {
+      "title": "Mese",
+      "addTable": "Masă",
+      "system": "Sistem",
+      "newQrCode": "COD QR NOU",
+      "deleteConfirm": "Ștergeți Masa {{number}}?",
+      "deleteConfirmLabel": "Ștergeți Masa {{number}} — {{label}}?",
+      "rotateConfirm": "Reînnoiți tokenul QR pentru Masa {{number}}? Codul QR vechi nu va mai funcționa.",
+      "addTitle": "Adăugare masă",
+      "numberLabel": "Număr masă",
+      "labelField": "Etichetă (opțional)",
+      "labelPlaceholder": "ex. Fereastra 3",
+      "addFailed": "Adăugarea mesei a eșuat",
+      "deleteFailed": "Ștergere eșuată"
+    },
+    "orders": {
+      "title": "Comenzi",
+      "from": "De la",
+      "to": "Până la",
+      "refresh": "Actualizare",
+      "noOrders": "Nicio comandă găsită pentru această perioadă.",
+      "statOrders": "Comenzi",
+      "statCoffeeEq": "Echivalent cafea",
+      "statMilk": "Lapte",
+      "portions": "porții",
+      "perItem": "Per produs",
+      "noItems": "Niciun produs",
+      "colItem": "Produs",
+      "colQty": "Cantitate",
+      "colCoffeeEq": "Ec. cafea",
+      "colMilk": "Lapte"
+    },
+    "settings": {
+      "title": "Setări",
+      "changePassword": "Schimbați parola",
+      "currentPassword": "Parola actuală",
+      "newPassword": "Parola nouă",
+      "confirmPassword": "Confirmați parola nouă",
+      "minLength": "Cel puțin 8 caractere",
+      "passwordMismatch": "Parolele nu se potrivesc",
+      "successMessage": "Parola a fost schimbată cu succes",
+      "submitButton": "Schimbați parola",
+      "failedMessage": "Schimbarea parolei a eșuat",
+      "language": "Limbă"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTranslation } from 'react-i18next'
 import { useMenuStore, retryMenu } from '../stores/menuStore.js'
 import { useOrderStore } from '../stores/orderStore.js'
 import { useTable } from '../hooks/useTable.js'
@@ -12,6 +13,7 @@ import MenuPanel from './order/MenuPanel.js'
 import CartPanel from './order/CartPanel.js'
 
 export default function OrderView() {
+  const { t } = useTranslation()
   const isLandscape = useMediaQuery('(orientation: landscape)')
   const { snapshot, loading: menuLoading, error: menuError, fetch: fetchMenu, setSnapshot } = useMenuStore()
   const { setTableId } = useOrderStore()
@@ -45,7 +47,7 @@ export default function OrderView() {
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2, p: 4 }}>
         <Typography variant="h6" color="error">{tableError}</Typography>
         <Typography color="text.secondary" textAlign="center">
-          The QR code link may have expired. Ask a staff member to rescan your table.
+          {t('order.qrExpired')}
         </Typography>
       </Box>
     )
@@ -54,10 +56,10 @@ export default function OrderView() {
   if (menuError) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2, p: 4 }}>
-        <Typography variant="h6" color="error">Menu unavailable</Typography>
+        <Typography variant="h6" color="error">{t('order.menuUnavailable')}</Typography>
         <Typography color="text.secondary">{menuError}</Typography>
         <Button variant="contained" onClick={() => void retryMenu()} sx={{ minHeight: 48 }}>
-          Try again
+          {t('order.tryAgain')}
         </Button>
       </Box>
     )

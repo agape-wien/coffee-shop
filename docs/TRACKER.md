@@ -154,6 +154,26 @@
 
 ---
 
+## Post-Phase 9 additions (continued)
+
+### i18n — internationalisation (EN / DE / RO)
+- [x] `react-i18next` + `i18next-browser-languagedetector` added as client dependencies
+- [x] `client/src/i18n/config.ts` — i18next init: browser language detection (localStorage → navigator), fallback `en`, supports `en` / `de` / `ro`
+- [x] `client/src/i18n/locales/en.json` / `de.json` / `ro.json` — full translation files covering all user-visible strings in every view
+- [x] All views updated: `BaristaView`, `CounterView`, `OrderView`, `PickupView`, `CartPanel`, `ManagementView`, `MenuSection`, `TablesSection`, `OrdersSection`, `SettingsSection`
+- [x] Romanian plural forms (`_one` / `_few` / `_other`) wired for item counts
+- No language-switcher UI (deliberate — language follows browser preference; switcher can be added later)
+
+### Language setting stored in database
+- [x] `AdminConfig.language String @default("en")` — column added to existing singleton row via `prisma db push`
+- [x] `getLanguage()` / `setLanguage()` added to `server/src/lib/adminConfig.ts`
+- [x] `GET /api/v1/auth/language` — public endpoint, all views fetch this on startup
+- [x] `PUT /api/v1/management/settings/language` — auth-protected, validates `en | de | ro`
+- [x] `LanguageSync` component in `App.tsx` — fetches DB language on mount, calls `i18n.changeLanguage()` if different from cache
+- [x] Language picker added to Settings tab in Management view — saves to DB and applies immediately
+
+---
+
 ## Next up — Phase 10: QR / Mobile polish
 
 1. Server-side QR PNG generation (`qrcode` package) — `GET /api/v1/management/tables/:id/qr`
@@ -232,3 +252,7 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 | Orders summary computed client-side | `computeSummary()` in `OrdersSection.tsx` aggregates totals from the already-fetched order array | No second API call needed — the orders endpoint already returns all required data. Adding a `/summary` endpoint would duplicate the query and add a round trip. The client computation is O(orders × items), which is negligible for the 200-order cap. |
 | No test suite (v1) | Deliberate decision — no unit or integration tests added | For this app size and team, manual verification is faster than the infrastructure cost of a proper test suite (Vitest + Supertest + test DB). One Playwright smoke test at the end of Phase 10/11 is the only testing investment worth making. |
 | Panel header stacking fix | `bgcolor: 'background.paper'` + `position: 'relative'` + `zIndex: 1` on all panel header boxes; `AppBar position="sticky"` in management | MUI `Card` sets `position: relative` internally, placing it ahead of static siblings in the same stacking context. Without an explicit z-index, panel headers (position: static) paint behind scrolled cards. `position: relative + zIndex: 1` on headers and `position: sticky` on AppBar (which MUI maps to `zIndex: 1100`) corrects the paint order. |
+| i18n library | `react-i18next` + `i18next-browser-languagedetector` | Industry standard for React. The LanguageDetector plugin gives us the localStorage → navigator fallback chain for free. Alternatives (i18n-ally, lingui) require more setup and have smaller ecosystems. |
+| Language storage: two-tier (localStorage + DB) | i18next caches to localStorage; `LanguageSync` component fetches DB on first render and overrides if different | DB is authoritative (admin sets it for the whole shop); localStorage is the fast path (returning devices show correct language immediately without a network round-trip before first render). Pure-DB would cause a language flash on every page load. Pure-localStorage would lose the admin-configured value on first visit to a new device. |
+| `GET /auth/language` public (no JWT) | Same rationale as other operational endpoints — auth scope follows API auth scope decision above | All five views call this on startup before any login flow. Protecting it would require embedding a credential in the client JS or building unauthenticated token exchange — both worse than the exposure risk of returning a language code. |
+| Badge letters "C"/"O" not translated | Intentionally kept as English abbreviations | These are documented internal identifiers, not user-facing text. Translating them (e.g. "K" for Kaffee) would break the consistency between `/counter` and `/pickup`, which display the same badges, and could confuse staff who are trained on the current format. |

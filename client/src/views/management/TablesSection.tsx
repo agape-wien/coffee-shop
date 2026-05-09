@@ -1,6 +1,7 @@
 // Table management — list, add, delete, rotate QR token.
 // The Bar table (id='bar') is shown read-only — it is a system constant and cannot be deleted.
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -24,6 +25,7 @@ interface TableRow {
 }
 
 export default function TablesSection({ token }: { token: string }) {
+  const { t } = useTranslation()
   const [tables, setTables] = useState<TableRow[]>([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -55,7 +57,7 @@ export default function TablesSection({ token }: { token: string }) {
       })
       if (!res.ok) {
         const json = await res.json() as { error?: string }
-        alert(json.error ?? 'Failed to add table')
+        alert(json.error ?? t('management.tables.addFailed'))
         return
       }
       setAddOpen(false)
@@ -68,18 +70,21 @@ export default function TablesSection({ token }: { token: string }) {
   }
 
   const deleteTable = async (table: TableRow) => {
-    if (!confirm(`Delete Table ${table.number}${table.label ? ` — ${table.label}` : ''}?`)) return
+    const msg = table.label
+      ? t('management.tables.deleteConfirmLabel', { number: table.number, label: table.label })
+      : t('management.tables.deleteConfirm', { number: table.number })
+    if (!confirm(msg)) return
     const res = await apiFetch(token, `/api/v1/management/tables/${table.id}`, { method: 'DELETE' })
     if (!res.ok) {
       const json = await res.json() as { error?: string }
-      alert(json.error ?? 'Delete failed')
+      alert(json.error ?? t('management.tables.deleteFailed'))
       return
     }
     void load()
   }
 
   const rotateQr = async (table: TableRow) => {
-    if (!confirm(`Rotate QR token for Table ${table.number}? The old QR code will stop working.`)) return
+    if (!confirm(t('management.tables.rotateConfirm', { number: table.number }))) return
     await apiFetch(token, `/api/v1/management/tables/${table.id}/rotate-qr`, { method: 'POST' })
     void load()
   }
@@ -91,8 +96,8 @@ export default function TablesSection({ token }: { token: string }) {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Tables</Typography>
-        <Button variant="contained" size="small" onClick={() => setAddOpen(true)} startIcon={<AddIcon />}>Table</Button>
+        <Typography variant="h6">{t('management.tables.title')}</Typography>
+        <Button variant="contained" size="small" onClick={() => setAddOpen(true)} startIcon={<AddIcon />}>{t('management.tables.addTable')}</Button>
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -105,7 +110,7 @@ export default function TablesSection({ token }: { token: string }) {
             >
               <Box sx={{ flex: 1 }}>
                 <Typography fontWeight="bold">
-                  {isBar ? 'Bar' : `Table ${table.number}`}
+                  {isBar ? t('common.bar') : t('common.table', { number: table.number })}
                   {table.label ? ` — ${table.label}` : ''}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
@@ -113,11 +118,11 @@ export default function TablesSection({ token }: { token: string }) {
                 </Typography>
               </Box>
               {isBar ? (
-                <Chip label="System" size="small" variant="outlined" />
+                <Chip label={t('management.tables.system')} size="small" variant="outlined" />
               ) : (
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button size="small" variant="outlined" onClick={() => void rotateQr(table)}>
-                    NEW QR CODE
+                    {t('management.tables.newQrCode')}
                   </Button>
                   <IconButton size="small" color="error" onClick={() => void deleteTable(table)}>
                     <DeleteForeverIcon />
@@ -130,28 +135,28 @@ export default function TablesSection({ token }: { token: string }) {
       </Box>
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add table</DialogTitle>
+        <DialogTitle>{t('management.tables.addTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField
-            label="Table number" type="number" value={newNumber}
+            label={t('management.tables.numberLabel')} type="number" value={newNumber}
             onChange={(e) => setNewNumber(e.target.value)}
             autoFocus fullWidth size="small"
           />
           <TextField
-            label="Label (optional)" value={newLabel}
+            label={t('management.tables.labelField')} value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="e.g. Window 3" fullWidth size="small"
+            placeholder={t('management.tables.labelPlaceholder')} fullWidth size="small"
             onKeyDown={(e) => { if (e.key === 'Enter') void addTable() }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+          <Button onClick={() => setAddOpen(false)}>{t('common.cancel')}</Button>
           <Button
             variant="contained"
             onClick={() => void addTable()}
             disabled={saving || !newNumber || parseInt(newNumber, 10) < 1}
           >
-            Add
+            {t('common.add')}
           </Button>
         </DialogActions>
       </Dialog>

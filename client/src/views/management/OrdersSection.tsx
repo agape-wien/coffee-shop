@@ -2,6 +2,7 @@
 // Defaults to today. Each row is expandable to show item detail.
 // Summary cards above the list show totals for non-cancelled orders only.
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -124,28 +125,29 @@ function StatCard({ label, value, unit }: { label: string; value: string; unit: 
 // ─── Summary cards ────────────────────────────────────────────────────────────
 
 function SummaryCards({ summary }: { summary: Summary }) {
+  const { t } = useTranslation()
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <StatCard label="Orders" value={String(summary.orderCount)} unit="" />
-        <StatCard label="Coffee equivalent" value={summary.totalEe.toFixed(1)} unit="portions" />
-        <StatCard label="Milk" value={summary.totalMeL.toFixed(2)} unit="L" />
+        <StatCard label={t('management.orders.statOrders')} value={String(summary.orderCount)} unit="" />
+        <StatCard label={t('management.orders.statCoffeeEq')} value={summary.totalEe.toFixed(1)} unit={t('management.orders.portions')} />
+        <StatCard label={t('management.orders.statMilk')} value={summary.totalMeL.toFixed(2)} unit="L" />
       </Box>
 
       <Paper variant="outlined" sx={{ px: 2.5, py: 2 }}>
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-          Per item
+          {t('management.orders.perItem')}
         </Typography>
         {summary.items.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No items</Typography>
+          <Typography variant="body2" color="text.secondary">{t('management.orders.noItems')}</Typography>
         ) : (
           <Box>
             {/* Header */}
             <Box sx={{ display: 'flex', gap: 2, pb: 0.5, mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>Item</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ width: 48, textAlign: 'right' }}>Qty</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ width: 80, textAlign: 'right' }}>Coffee eq.</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ width: 64, textAlign: 'right' }}>Milk</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>{t('management.orders.colItem')}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ width: 48, textAlign: 'right' }}>{t('management.orders.colQty')}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ width: 80, textAlign: 'right' }}>{t('management.orders.colCoffeeEq')}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ width: 64, textAlign: 'right' }}>{t('management.orders.colMilk')}</Typography>
             </Box>
             <Divider sx={{ mb: 0.5 }} />
             {summary.items.map((item) => (
@@ -153,7 +155,7 @@ function SummaryCards({ summary }: { summary: Summary }) {
                 <Typography variant="body2" sx={{ flex: 1 }}>{item.name}</Typography>
                 <Typography variant="body2" sx={{ width: 48, textAlign: 'right' }}>×{item.quantity}</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ width: 80, textAlign: 'right' }}>
-                  {item.totalEe > 0 ? `${item.totalEe.toFixed(1)} por` : '—'}
+                  {item.totalEe > 0 ? `${item.totalEe.toFixed(1)} ${t('management.orders.portions')}` : '—'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ width: 64, textAlign: 'right' }}>
                   {item.totalMe > 0 ? `${(item.totalMe / 1000).toFixed(2)} L` : '—'}
@@ -170,6 +172,7 @@ function SummaryCards({ summary }: { summary: Summary }) {
 // ─── Main section ─────────────────────────────────────────────────────────────
 
 export default function OrdersSection({ token }: { token: string }) {
+  const { t } = useTranslation()
   const today = todayString()
   const [from, setFrom] = useState(today)
   const [to, setTo] = useState(today)
@@ -192,9 +195,11 @@ export default function OrdersSection({ token }: { token: string }) {
   useEffect(() => { void load() }, [load])
 
   const tableLabel = (order: OrderRow) => {
-    const t = order.table
-    if (t.id === 'bar') return 'Bar'
-    return `Table ${t.number}${t.label ? ` — ${t.label}` : ''}`
+    const tbl = order.table
+    if (tbl.id === 'bar') return t('common.bar')
+    return tbl.label
+      ? t('common.tableWithLabel', { number: tbl.number, label: tbl.label })
+      : t('common.table', { number: tbl.number })
   }
 
   const summary = computeSummary(orders)
@@ -202,18 +207,18 @@ export default function OrdersSection({ token }: { token: string }) {
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h6" sx={{ mr: 1 }}>Orders</Typography>
+        <Typography variant="h6" sx={{ mr: 1 }}>{t('management.orders.title')}</Typography>
         <TextField
-          label="From" type="date" size="small" value={from}
+          label={t('management.orders.from')} type="date" size="small" value={from}
           onChange={(e) => setFrom(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
         <TextField
-          label="To" type="date" size="small" value={to}
+          label={t('management.orders.to')} type="date" size="small" value={to}
           onChange={(e) => setTo(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
-        <Tooltip title="Refresh">
+        <Tooltip title={t('management.orders.refresh')}>
           <span>
             <IconButton size="small" onClick={() => void load()} disabled={loading}>
               <RefreshIcon />
@@ -225,7 +230,7 @@ export default function OrdersSection({ token }: { token: string }) {
 
       {orders.length === 0 && !loading ? (
         <Typography color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
-          No orders found for this date range.
+          {t('management.orders.noOrders')}
         </Typography>
       ) : (
         <>

@@ -199,6 +199,17 @@ Tasks:
 
 ---
 
+## Post-Phase 9 additions
+
+Tasks completed outside the original phase plan:
+
+- [x] **Admin password change** — `AdminConfig` DB table, bcrypt hashing, `PUT /api/v1/auth/password`, Settings tab in management view
+- [x] **Orders summary cards** — aggregate stats (order count, EE portions, milk L) + per-item breakdown; computed client-side from existing endpoint data
+- [x] **i18n (EN / DE / RO)** — `react-i18next` + LanguageDetector; translation files for all views; Romanian CLDR plural forms
+- [x] **Language stored in DB** — `AdminConfig.language`, public `GET /api/v1/auth/language`, protected `PUT /api/v1/management/settings/language`, `LanguageSync` component, language picker in Settings tab
+
+---
+
 ## Phase 10 — QR / Mobile polish
 
 Tasks:

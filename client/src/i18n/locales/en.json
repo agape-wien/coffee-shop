@@ -1,0 +1,134 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "bar": "Bar",
+    "table": "Table {{number}}",
+    "tableWithLabel": "Table {{number}} — {{label}}",
+    "coffee": "Coffee",
+    "other": "Other",
+    "serverError": "Could not reach server"
+  },
+  "status": {
+    "PENDING": "Waiting",
+    "IN_PROGRESS": "Preparing…",
+    "DONE": "Ready!",
+    "PICKED_UP": "Delivered",
+    "CANCELLED": "Cancelled"
+  },
+  "barista": {
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "noPending": "No pending orders",
+    "noneInProgress": "Nothing in progress"
+  },
+  "counter": {
+    "prepare": "Prepare",
+    "readyForPickup": "Ready for pickup",
+    "nothingToPrepare": "Nothing to prepare",
+    "noOrdersReady": "No orders ready"
+  },
+  "pickup": {
+    "noOrders": "No orders ready yet"
+  },
+  "order": {
+    "qrExpired": "The QR code link may have expired. Ask a staff member to rescan your table.",
+    "menuUnavailable": "Menu unavailable",
+    "tryAgain": "Try again",
+    "tableLabel": "Table",
+    "orderTab": "Order",
+    "openTab": "Open",
+    "yourOrder": "Your Order",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "addItems": "Add items from the menu",
+    "notesPlaceholder": "Notes (e.g. oat milk, no sugar)",
+    "placeOrder": "Place Order",
+    "noOpenOrders": "No open orders",
+    "deliver": "Deliver"
+  },
+  "management": {
+    "title": "Management",
+    "password": "Password",
+    "signIn": "Sign in",
+    "loginFailed": "Login failed",
+    "signOut": "Sign out",
+    "tabs": {
+      "menu": "Menu",
+      "tables": "Tables",
+      "orders": "Orders",
+      "settings": "Settings"
+    },
+    "menu": {
+      "title": "Menu",
+      "addCategory": "Category",
+      "addItem": "Item",
+      "itemCount_one": "({{count}} item)",
+      "itemCount_other": "({{count}} items)",
+      "noCategories": "No categories yet — add one to get started.",
+      "editCategory": "Edit category",
+      "addCategoryTitle": "Add category",
+      "name": "Name",
+      "sortOrder": "Sort order",
+      "editItem": "Edit item",
+      "addItemTitle": "Add item",
+      "description": "Description",
+      "imageUrl": "Image URL",
+      "type": "Type",
+      "category": "Category",
+      "espressoPortions": "Espresso portions (ee)",
+      "milkMl": "Milk ml (me)",
+      "deleteCategoryConfirm": "Delete category \"{{name}}\"? This is permanent.",
+      "deleteItemConfirm": "Delete \"{{name}}\"? This is permanent.",
+      "deleteFailed": "Delete failed"
+    },
+    "tables": {
+      "title": "Tables",
+      "addTable": "Table",
+      "system": "System",
+      "newQrCode": "NEW QR CODE",
+      "deleteConfirm": "Delete Table {{number}}?",
+      "deleteConfirmLabel": "Delete Table {{number}} — {{label}}?",
+      "rotateConfirm": "Rotate QR token for Table {{number}}? The old QR code will stop working.",
+      "addTitle": "Add table",
+      "numberLabel": "Table number",
+      "labelField": "Label (optional)",
+      "labelPlaceholder": "e.g. Window 3",
+      "addFailed": "Failed to add table",
+      "deleteFailed": "Delete failed"
+    },
+    "orders": {
+      "title": "Orders",
+      "from": "From",
+      "to": "To",
+      "refresh": "Refresh",
+      "noOrders": "No orders found for this date range.",
+      "statOrders": "Orders",
+      "statCoffeeEq": "Coffee equivalent",
+      "statMilk": "Milk",
+      "portions": "portions",
+      "perItem": "Per item",
+      "noItems": "No items",
+      "colItem": "Item",
+      "colQty": "Qty",
+      "colCoffeeEq": "Coffee eq.",
+      "colMilk": "Milk"
+    },
+    "settings": {
+      "title": "Settings",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "minLength": "At least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "successMessage": "Password changed successfully",
+      "submitButton": "Change password",
+      "failedMessage": "Failed to change password",
+      "language": "Language"
+    }
+  }
+}

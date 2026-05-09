@@ -41,6 +41,7 @@ import AddIcon from '@mui/icons-material/Add'
 import CoffeeIcon from '@mui/icons-material/Coffee'
 import FastfoodIcon from '@mui/icons-material/Fastfood'
 import RemoveIcon from '@mui/icons-material/Remove'
+import { useTranslation } from 'react-i18next'
 import type { Table, Order } from '@coffee/shared'
 import { BAR_TABLE_ID } from '@coffee/shared'
 import { useOrderStore } from '../../stores/orderStore.js'
@@ -52,6 +53,7 @@ interface Props {
 }
 
 export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
+  const { t } = useTranslation()
   const { tableId, setTableId, orderNumber, setOrderNumber, submitting, submitError } = useOrderStore()
   const isBar = tableId === BAR_TABLE_ID
   const prevSubmittingRef = useRef(submitting)
@@ -149,20 +151,26 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
       <Box sx={{ px: 2, pt: 2, pb: 1, flexShrink: 0, bgcolor: 'background.paper', position: 'relative', zIndex: 1 }}>
         {isTokenMode && tableFromToken ? (
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: 'var(--fs-secondary)' }}>
-            Table {tableFromToken.number}{tableFromToken.label ? ` — ${tableFromToken.label}` : ''}
+            {tableFromToken.label
+              ? t('common.tableWithLabel', { number: tableFromToken.number, label: tableFromToken.label })
+              : t('common.table', { number: tableFromToken.number })}
           </Typography>
         ) : (
           <FormControl fullWidth size="small">
-            <InputLabel sx={{ fontSize: 'var(--fs-small)' }}>Table</InputLabel>
+            <InputLabel sx={{ fontSize: 'var(--fs-small)' }}>{t('order.tableLabel')}</InputLabel>
             <Select
               value={tableId}
-              label="Table"
+              label={t('order.tableLabel')}
               onChange={(e) => setTableId(e.target.value as string)}
               sx={{ fontSize: 'var(--fs-secondary)' }}
             >
-              {tables.map((t) => (
-                <MuiMenuItem key={t.id} value={t.id} sx={{ fontSize: 'var(--fs-secondary)' }}>
-                  {t.id === BAR_TABLE_ID ? 'Bar' : `Table ${t.number}${t.label ? ` — ${t.label}` : ''}`}
+              {tables.map((tbl) => (
+                <MuiMenuItem key={tbl.id} value={tbl.id} sx={{ fontSize: 'var(--fs-secondary)' }}>
+                  {tbl.id === BAR_TABLE_ID
+                    ? t('common.bar')
+                    : tbl.label
+                      ? t('common.tableWithLabel', { number: tbl.number, label: tbl.label })
+                      : t('common.table', { number: tbl.number })}
                 </MuiMenuItem>
               ))}
             </Select>
@@ -172,12 +180,12 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
 
       <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, px: 1, bgcolor: 'background.paper', position: 'relative', zIndex: 1 }}>
         <Tabs value={tab} onChange={(_, v: number) => setTab(v)} sx={{ flex: 1 }}>
-          <Tab label="Order" sx={{ fontSize: 'var(--fs-primary)' }} />
+          <Tab label={t('order.orderTab')} sx={{ fontSize: 'var(--fs-primary)' }} />
           <Tab
             sx={{ fontSize: 'var(--fs-primary)' }}
             label={
               <Badge badgeContent={pendingCount} color="primary" max={99}>
-                <Box sx={{ pr: pendingCount > 0 ? 1.5 : 0 }}>Open</Box>
+                <Box sx={{ pr: pendingCount > 0 ? 1.5 : 0 }}>{t('order.openTab')}</Box>
               </Badge>
             }
           />
@@ -222,6 +230,7 @@ function isSettled(order: Order): boolean {
 // ─── Cart view ────────────────────────────────────────────────────────────────
 
 function CartView() {
+  const { t } = useTranslation()
   const {
     cart, orderNumber, submitting, submitError,
     setQuantity, setItemNotes, submit,
@@ -237,17 +246,17 @@ function CartView() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
-        <Typography fontWeight="bold" sx={{ fontSize: 'var(--fs-primary)' }}>Your Order</Typography>
+        <Typography fontWeight="bold" sx={{ fontSize: 'var(--fs-primary)' }}>{t('order.yourOrder')}</Typography>
         {totalItems > 0 && (
           <Typography sx={{ fontSize: 'var(--fs-primary)' }}>
-            {totalItems} item{totalItems !== 1 ? 's' : ''}
+            {t('order.itemCount', { count: totalItems })}
           </Typography>
         )}
       </Box>
 
       {isEmpty ? (
         <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>Add items from the menu</Typography>
+          <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>{t('order.addItems')}</Typography>
         </Box>
       ) : (
         <Box sx={{ flex: 1, overflowY: 'auto', mb: 1 }}>
@@ -278,7 +287,7 @@ function CartView() {
         onClick={() => { void submit() }}
         sx={{ minHeight: 56, flexShrink: 0, fontSize: 'var(--fs-primary)' }}
       >
-        {submitting ? <CircularProgress size={24} color="inherit" /> : 'Place Order'}
+        {submitting ? <CircularProgress size={24} color="inherit" /> : t('order.placeOrder')}
       </Button>
     </Box>
   )
@@ -296,6 +305,7 @@ interface CartLineItemProps {
 // autoFocus mounts the field with the cursor ready to type. Blurring with an empty
 // field collapses it again.
 function CartLineItem({ line: l, onQuantity, onNotes }: CartLineItemProps) {
+  const { t } = useTranslation()
   const [showNotes, setShowNotes] = useState(l.notes !== '')
 
   return (
@@ -328,7 +338,7 @@ function CartLineItem({ line: l, onQuantity, onNotes }: CartLineItemProps) {
         <TextField
           autoFocus
           size="small"
-          placeholder="Notes (e.g. oat milk, no sugar)"
+          placeholder={t('order.notesPlaceholder')}
           value={l.notes}
           onChange={(e) => onNotes(e.target.value)}
           onBlur={() => { if (l.notes === '') setShowNotes(false) }}
@@ -342,14 +352,6 @@ function CartLineItem({ line: l, onQuantity, onNotes }: CartLineItemProps) {
 
 // ─── Open orders view ─────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Waiting',
-  IN_PROGRESS: 'Preparing…',
-  DONE: 'Ready!',
-  PICKED_UP: 'Delivered',
-  CANCELLED: 'Cancelled',
-}
-
 const STATUS_COLOR: Record<string, 'default' | 'primary' | 'warning' | 'success' | 'error'> = {
   PENDING: 'default',
   IN_PROGRESS: 'warning',
@@ -359,6 +361,7 @@ const STATUS_COLOR: Record<string, 'default' | 'primary' | 'warning' | 'success'
 }
 
 function OpenOrdersView({ orders }: { orders: Order[] }) {
+  const { t } = useTranslation()
   const socket = getSocket()
 
   const deliver = (orderId: string, part: 'coffee' | 'other') => {
@@ -368,7 +371,7 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
   if (orders.length === 0) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>No open orders</Typography>
+        <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>{t('order.noOpenOrders')}</Typography>
       </Box>
     )
   }
@@ -407,9 +410,9 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CoffeeIcon sx={{ fontSize: 'var(--fs-secondary)' }} />
-                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>Coffee</Typography>
+                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>{t('common.coffee')}</Typography>
                     <Chip
-                      label={STATUS_LABEL[order.coffeeStatus] ?? order.coffeeStatus}
+                      label={t(`status.${order.coffeeStatus}`, order.coffeeStatus)}
                       color={STATUS_COLOR[order.coffeeStatus] ?? 'default'}
                       size="small"
                       sx={{ fontSize: 'var(--fs-secondary)' }}
@@ -422,7 +425,7 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
                     onClick={() => deliver(order.id, 'coffee')}
                     sx={{ fontSize: 'var(--fs-secondary)' }}
                   >
-                    Deliver
+                    {t('order.deliver')}
                   </Button>
                 </Box>
               )}
@@ -430,9 +433,9 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FastfoodIcon sx={{ fontSize: 'var(--fs-secondary)' }} />
-                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>Other</Typography>
+                    <Typography variant="body2" sx={{ fontSize: 'var(--fs-secondary)' }}>{t('common.other')}</Typography>
                     <Chip
-                      label={STATUS_LABEL[order.otherStatus] ?? order.otherStatus}
+                      label={t(`status.${order.otherStatus}`, order.otherStatus)}
                       color={STATUS_COLOR[order.otherStatus] ?? 'default'}
                       size="small"
                       sx={{ fontSize: 'var(--fs-secondary)' }}
@@ -445,7 +448,7 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
                     onClick={() => deliver(order.id, 'other')}
                     sx={{ fontSize: 'var(--fs-secondary)' }}
                   >
-                    Deliver
+                    {t('order.deliver')}
                   </Button>
                 </Box>
               )}

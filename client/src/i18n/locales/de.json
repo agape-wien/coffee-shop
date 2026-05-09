@@ -1,0 +1,134 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "add": "Hinzufügen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "bar": "Bar",
+    "table": "Tisch {{number}}",
+    "tableWithLabel": "Tisch {{number}} — {{label}}",
+    "coffee": "Kaffee",
+    "other": "Sonstiges",
+    "serverError": "Server nicht erreichbar"
+  },
+  "status": {
+    "PENDING": "Wartend",
+    "IN_PROGRESS": "In Zubereitung…",
+    "DONE": "Bereit!",
+    "PICKED_UP": "Geliefert",
+    "CANCELLED": "Storniert"
+  },
+  "barista": {
+    "pending": "Ausstehend",
+    "inProgress": "In Bearbeitung",
+    "noPending": "Keine ausstehenden Bestellungen",
+    "noneInProgress": "Nichts in Bearbeitung"
+  },
+  "counter": {
+    "prepare": "Zubereiten",
+    "readyForPickup": "Zur Abholung bereit",
+    "nothingToPrepare": "Nichts zuzubereiten",
+    "noOrdersReady": "Keine Bestellungen fertig"
+  },
+  "pickup": {
+    "noOrders": "Noch keine Bestellungen fertig"
+  },
+  "order": {
+    "qrExpired": "Der QR-Code-Link ist möglicherweise abgelaufen. Bitten Sie einen Mitarbeiter, Ihren Tisch erneut zu scannen.",
+    "menuUnavailable": "Speisekarte nicht verfügbar",
+    "tryAgain": "Erneut versuchen",
+    "tableLabel": "Tisch",
+    "orderTab": "Bestellung",
+    "openTab": "Offen",
+    "yourOrder": "Ihre Bestellung",
+    "itemCount_one": "{{count}} Artikel",
+    "itemCount_other": "{{count}} Artikel",
+    "addItems": "Artikel aus der Speisekarte hinzufügen",
+    "notesPlaceholder": "Hinweise (z.B. Hafermilch, kein Zucker)",
+    "placeOrder": "Bestellen",
+    "noOpenOrders": "Keine offenen Bestellungen",
+    "deliver": "Liefern"
+  },
+  "management": {
+    "title": "Verwaltung",
+    "password": "Passwort",
+    "signIn": "Anmelden",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "signOut": "Abmelden",
+    "tabs": {
+      "menu": "Speisekarte",
+      "tables": "Tische",
+      "orders": "Bestellungen",
+      "settings": "Einstellungen"
+    },
+    "menu": {
+      "title": "Speisekarte",
+      "addCategory": "Kategorie",
+      "addItem": "Artikel",
+      "itemCount_one": "({{count}} Artikel)",
+      "itemCount_other": "({{count}} Artikel)",
+      "noCategories": "Noch keine Kategorien — fügen Sie eine hinzu.",
+      "editCategory": "Kategorie bearbeiten",
+      "addCategoryTitle": "Kategorie hinzufügen",
+      "name": "Name",
+      "sortOrder": "Sortierfolge",
+      "editItem": "Artikel bearbeiten",
+      "addItemTitle": "Artikel hinzufügen",
+      "description": "Beschreibung",
+      "imageUrl": "Bild-URL",
+      "type": "Typ",
+      "category": "Kategorie",
+      "espressoPortions": "Espresso-Portionen (ee)",
+      "milkMl": "Milch ml (me)",
+      "deleteCategoryConfirm": "Kategorie \"{{name}}\" löschen? Dies ist dauerhaft.",
+      "deleteItemConfirm": "\"{{name}}\" löschen? Dies ist dauerhaft.",
+      "deleteFailed": "Löschen fehlgeschlagen"
+    },
+    "tables": {
+      "title": "Tische",
+      "addTable": "Tisch",
+      "system": "System",
+      "newQrCode": "NEUER QR-CODE",
+      "deleteConfirm": "Tisch {{number}} löschen?",
+      "deleteConfirmLabel": "Tisch {{number}} — {{label}} löschen?",
+      "rotateConfirm": "QR-Token für Tisch {{number}} erneuern? Der alte QR-Code wird ungültig.",
+      "addTitle": "Tisch hinzufügen",
+      "numberLabel": "Tischnummer",
+      "labelField": "Bezeichnung (optional)",
+      "labelPlaceholder": "z.B. Fenster 3",
+      "addFailed": "Tisch konnte nicht hinzugefügt werden",
+      "deleteFailed": "Löschen fehlgeschlagen"
+    },
+    "orders": {
+      "title": "Bestellungen",
+      "from": "Von",
+      "to": "Bis",
+      "refresh": "Aktualisieren",
+      "noOrders": "Keine Bestellungen für diesen Zeitraum gefunden.",
+      "statOrders": "Bestellungen",
+      "statCoffeeEq": "Kaffeeäquivalent",
+      "statMilk": "Milch",
+      "portions": "Portionen",
+      "perItem": "Pro Artikel",
+      "noItems": "Keine Artikel",
+      "colItem": "Artikel",
+      "colQty": "Menge",
+      "colCoffeeEq": "Kaffeeäq.",
+      "colMilk": "Milch"
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "changePassword": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "minLength": "Mindestens 8 Zeichen",
+      "passwordMismatch": "Passwörter stimmen nicht überein",
+      "successMessage": "Passwort erfolgreich geändert",
+      "submitButton": "Passwort ändern",
+      "failedMessage": "Passwort konnte nicht geändert werden",
+      "language": "Sprache"
+    }
+  }
+}

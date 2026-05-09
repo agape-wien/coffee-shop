@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { keyframes } from '@mui/material/styles'
+import { useTranslation } from 'react-i18next'
 import type { Order } from '@coffee/shared'
 import { getSocket } from '../hooks/useSocket.js'
 
@@ -35,6 +36,7 @@ function extractDoneParts(order: Order): DonePart[] {
 }
 
 export default function PickupView() {
+  const { t } = useTranslation()
   const [orders, setOrders] = useState<Order[]>([])
 
   // Hydrate from REST on mount — covers any DONE parts that existed before the page opened.
@@ -90,7 +92,7 @@ export default function PickupView() {
     >
       {doneParts.length === 0 ? (
         <Typography color="text.disabled" sx={{ fontSize: '1.25rem' }}>
-          No orders ready yet
+          {t('pickup.noOrders')}
         </Typography>
       ) : (
         doneParts.map((badge) => (

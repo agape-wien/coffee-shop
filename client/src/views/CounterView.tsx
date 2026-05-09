@@ -23,6 +23,7 @@ import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTranslation } from 'react-i18next'
 import type { Order } from '@coffee/shared'
 import { getSocket } from '../hooks/useSocket.js'
 
@@ -55,6 +56,7 @@ interface DonePart {
 }
 
 export default function CounterView() {
+  const { t } = useTranslation()
   const isLandscape = useMediaQuery('(orientation: landscape)')
   const [orders, setOrders] = useState<Order[]>([])
   const [, setTick] = useState(0)
@@ -158,7 +160,7 @@ export default function CounterView() {
           borderColor: 'divider',
         }}
       >
-        <PanelHeader title="Prepare" count={prepOrders.length} />
+        <PanelHeader title={t('counter.prepare')} count={prepOrders.length} />
         <PrepList orders={prepOrders} onTap={handlePrepTap} />
       </Box>
 
@@ -172,7 +174,7 @@ export default function CounterView() {
           flexDirection: 'column',
         }}
       >
-        <PanelHeader title="Ready for pickup" count={doneParts.length} />
+        <PanelHeader title={t('counter.readyForPickup')} count={doneParts.length} />
         <PickupDisplay parts={doneParts} onPickup={handlePickup} />
       </Box>
     </Box>
@@ -220,22 +222,18 @@ function PanelHeader({ title, count, right }: {
 
 // ─── Prep list ────────────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Waiting',
-  IN_PROGRESS: 'Preparing…',
-}
-
 const STATUS_COLOR: Record<string, 'default' | 'warning'> = {
   PENDING: 'default',
   IN_PROGRESS: 'warning',
 }
 
 function PrepList({ orders, onTap }: { orders: Order[]; onTap: (order: Order) => void }) {
+  const { t } = useTranslation()
   if (orders.length === 0) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>
-          Nothing to prepare
+          {t('counter.nothingToPrepare')}
         </Typography>
       </Box>
     )
@@ -253,6 +251,7 @@ function PrepList({ orders, onTap }: { orders: Order[]; onTap: (order: Order) =>
 }
 
 function PrepCard({ order, onTap }: { order: Order; onTap: (order: Order) => void }) {
+  const { t } = useTranslation()
   const otherItems = order.items.filter((item) => item.menuItem.type === 'OTHER')
   const borderColor = urgencyBorderColor(order.createdAt)
   const isUrgent = borderColor !== 'divider'
@@ -268,7 +267,7 @@ function PrepCard({ order, onTap }: { order: Order; onTap: (order: Order) => voi
                 #{order.number}
               </Typography>
               <Chip
-                label={STATUS_LABEL[status] ?? status}
+                label={t(`status.${status}`, status)}
                 color={STATUS_COLOR[status] ?? 'default'}
                 size="small"
                 sx={{ fontSize: 'var(--fs-small)' }}
@@ -296,11 +295,12 @@ function PickupDisplay({ parts, onPickup }: {
   parts: DonePart[]
   onPickup: (orderId: string, part: 'coffee' | 'other') => void
 }) {
+  const { t } = useTranslation()
   if (parts.length === 0) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography color="text.disabled" sx={{ fontSize: 'var(--fs-secondary)' }}>
-          No orders ready
+          {t('counter.noOrdersReady')}
         </Typography>
       </Box>
     )

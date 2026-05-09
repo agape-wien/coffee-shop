@@ -8,6 +8,7 @@
 // menu:updated to all management room subscribers, but the local re-fetch is the source
 // of truth for this view — it avoids depending on the socket state being set up.
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -60,6 +61,7 @@ const EMPTY_ITEM: Omit<Item, 'id' | 'categoryId'> = {
 }
 
 export default function MenuSection({ token }: { token: string }) {
+  const { t } = useTranslation()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -118,11 +120,11 @@ export default function MenuSection({ token }: { token: string }) {
   }
 
   const deleteCategory = async (cat: Category) => {
-    if (!confirm(`Delete category "${cat.name}"? This is permanent.`)) return
+    if (!confirm(t('management.menu.deleteCategoryConfirm', { name: cat.name }))) return
     const res = await apiFetch(token, `/api/v1/management/categories/${cat.id}`, { method: 'DELETE' })
     if (!res.ok) {
       const json = await res.json() as { error?: string }
-      alert(json.error ?? 'Delete failed')
+      alert(json.error ?? t('management.menu.deleteFailed'))
       return
     }
     void load()
@@ -169,7 +171,7 @@ export default function MenuSection({ token }: { token: string }) {
   }
 
   const deleteItem = async (item: Item) => {
-    if (!confirm(`Delete "${item.name}"? This is permanent.`)) return
+    if (!confirm(t('management.menu.deleteItemConfirm', { name: item.name }))) return
     await apiFetch(token, `/api/v1/management/items/${item.id}`, { method: 'DELETE' })
     void load()
   }
@@ -181,8 +183,8 @@ export default function MenuSection({ token }: { token: string }) {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Menu</Typography>
-        <Button variant="contained" size="small" onClick={openAddCategory} startIcon={<AddIcon />}>Category</Button>
+        <Typography variant="h6">{t('management.menu.title')}</Typography>
+        <Button variant="contained" size="small" onClick={openAddCategory} startIcon={<AddIcon />}>{t('management.menu.addCategory')}</Button>
       </Box>
 
       {categories.map((cat) => (
@@ -190,11 +192,13 @@ export default function MenuSection({ token }: { token: string }) {
           <AccordionSummary>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
               <Typography fontWeight="bold">{cat.name}</Typography>
-              <Typography variant="caption" color="text.secondary">({cat.items.length} items)</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t('management.menu.itemCount', { count: cat.items.length })}
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, mr: 1 }} onClick={(e) => e.stopPropagation()}>
-              <Button size="small" onClick={() => openEditCategory(cat)}>Edit</Button>
-              <Button size="small" color="error" onClick={() => void deleteCategory(cat)}>Delete</Button>
+              <Button size="small" onClick={() => openEditCategory(cat)}>{t('common.edit')}</Button>
+              <Button size="small" color="error" onClick={() => void deleteCategory(cat)}>{t('common.delete')}</Button>
             </Box>
           </AccordionSummary>
 
@@ -217,7 +221,7 @@ export default function MenuSection({ token }: { token: string }) {
                     )}
                   </Box>
                   <Chip
-                    label={item.type === 'COFFEE' ? 'Coffee' : 'Other'}
+                    label={item.type === 'COFFEE' ? t('common.coffee') : t('common.other')}
                     size="small"
                     color={item.type === 'COFFEE' ? 'warning' : 'default'}
                     variant="outlined"
@@ -228,7 +232,7 @@ export default function MenuSection({ token }: { token: string }) {
               </Box>
             ))}
             <Box sx={{ p: 1.5 }}>
-              <Button size="small" onClick={() => openAddItem(cat.id)} startIcon={<AddIcon />}>Item</Button>
+              <Button size="small" onClick={() => openAddItem(cat.id)} startIcon={<AddIcon />}>{t('management.menu.addItem')}</Button>
             </Box>
           </AccordionDetails>
         </Accordion>
@@ -236,61 +240,61 @@ export default function MenuSection({ token }: { token: string }) {
 
       {categories.length === 0 && !loading && (
         <Typography color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
-          No categories yet — add one to get started.
+          {t('management.menu.noCategories')}
         </Typography>
       )}
 
       {/* Category dialog */}
       <Dialog open={catDialog.open} onClose={() => setCatDialog({ open: false, editing: null })} fullWidth maxWidth="xs">
-        <DialogTitle>{catDialog.editing ? 'Edit category' : 'Add category'}</DialogTitle>
+        <DialogTitle>{catDialog.editing ? t('management.menu.editCategory') : t('management.menu.addCategoryTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField
-            label="Name" value={catName} onChange={(e) => setCatName(e.target.value)}
+            label={t('management.menu.name')} value={catName} onChange={(e) => setCatName(e.target.value)}
             autoFocus fullWidth size="small"
             onKeyDown={(e) => { if (e.key === 'Enter') void saveCategory() }}
           />
           <TextField
-            label="Sort order" type="number" value={catSort}
+            label={t('management.menu.sortOrder')} type="number" value={catSort}
             onChange={(e) => setCatSort(e.target.value)} size="small" sx={{ width: 120 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCatDialog({ open: false, editing: null })}>Cancel</Button>
-          <Button variant="contained" onClick={() => void saveCategory()} disabled={!catName.trim()}>Save</Button>
+          <Button onClick={() => setCatDialog({ open: false, editing: null })}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={() => void saveCategory()} disabled={!catName.trim()}>{t('common.save')}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Item dialog */}
       <Dialog open={itemDialog.open} onClose={() => setItemDialog({ open: false, editing: null, categoryId: '' })} fullWidth maxWidth="sm">
-        <DialogTitle>{itemDialog.editing ? 'Edit item' : 'Add item'}</DialogTitle>
+        <DialogTitle>{itemDialog.editing ? t('management.menu.editItem') : t('management.menu.addItemTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField label="Name" value={itemForm.name} onChange={(e) => setItemForm(f => ({ ...f, name: e.target.value }))} fullWidth size="small" autoFocus />
-          <TextField label="Description" value={itemForm.description ?? ''} onChange={(e) => setItemForm(f => ({ ...f, description: e.target.value }))} fullWidth size="small" multiline rows={2} />
-          <TextField label="Image URL" value={itemForm.imageUrl ?? ''} onChange={(e) => setItemForm(f => ({ ...f, imageUrl: e.target.value }))} fullWidth size="small" />
+          <TextField label={t('management.menu.name')} value={itemForm.name} onChange={(e) => setItemForm(f => ({ ...f, name: e.target.value }))} fullWidth size="small" autoFocus />
+          <TextField label={t('management.menu.description')} value={itemForm.description ?? ''} onChange={(e) => setItemForm(f => ({ ...f, description: e.target.value }))} fullWidth size="small" multiline rows={2} />
+          <TextField label={t('management.menu.imageUrl')} value={itemForm.imageUrl ?? ''} onChange={(e) => setItemForm(f => ({ ...f, imageUrl: e.target.value }))} fullWidth size="small" />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Type</InputLabel>
-              <Select value={itemForm.type} label="Type" onChange={(e) => setItemForm(f => ({ ...f, type: e.target.value as 'COFFEE' | 'OTHER' }))}>
-                <MenuItem value="COFFEE">Coffee</MenuItem>
-                <MenuItem value="OTHER">Other</MenuItem>
+              <InputLabel>{t('management.menu.type')}</InputLabel>
+              <Select value={itemForm.type} label={t('management.menu.type')} onChange={(e) => setItemForm(f => ({ ...f, type: e.target.value as 'COFFEE' | 'OTHER' }))}>
+                <MenuItem value="COFFEE">{t('common.coffee')}</MenuItem>
+                <MenuItem value="OTHER">{t('common.other')}</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Category</InputLabel>
-              <Select value={itemForm.categoryId} label="Category" onChange={(e) => setItemForm(f => ({ ...f, categoryId: e.target.value }))}>
+              <InputLabel>{t('management.menu.category')}</InputLabel>
+              <Select value={itemForm.categoryId} label={t('management.menu.category')} onChange={(e) => setItemForm(f => ({ ...f, categoryId: e.target.value }))}>
                 {categories.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
               </Select>
             </FormControl>
-            <TextField label="Sort order" type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm(f => ({ ...f, sortOrder: parseInt(e.target.value, 10) || 0 }))} size="small" sx={{ width: 100 }} />
+            <TextField label={t('management.menu.sortOrder')} type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm(f => ({ ...f, sortOrder: parseInt(e.target.value, 10) || 0 }))} size="small" sx={{ width: 100 }} />
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField label="Espresso portions (ee)" type="number" value={itemForm.ee} onChange={(e) => setItemForm(f => ({ ...f, ee: parseFloat(e.target.value) || 0 }))} size="small" sx={{ flex: 1 }} />
-            <TextField label="Milk ml (me)" type="number" value={itemForm.me} onChange={(e) => setItemForm(f => ({ ...f, me: parseFloat(e.target.value) || 0 }))} size="small" sx={{ flex: 1 }} />
+            <TextField label={t('management.menu.espressoPortions')} type="number" value={itemForm.ee} onChange={(e) => setItemForm(f => ({ ...f, ee: parseFloat(e.target.value) || 0 }))} size="small" sx={{ flex: 1 }} />
+            <TextField label={t('management.menu.milkMl')} type="number" value={itemForm.me} onChange={(e) => setItemForm(f => ({ ...f, me: parseFloat(e.target.value) || 0 }))} size="small" sx={{ flex: 1 }} />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setItemDialog({ open: false, editing: null, categoryId: '' })}>Cancel</Button>
-          <Button variant="contained" onClick={() => void saveItem()} disabled={!itemForm.name.trim() || !itemForm.categoryId}>Save</Button>
+          <Button onClick={() => setItemDialog({ open: false, editing: null, categoryId: '' })}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={() => void saveItem()} disabled={!itemForm.name.trim() || !itemForm.categoryId}>{t('common.save')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

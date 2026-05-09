@@ -2,7 +2,7 @@ import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
-import { verifyAdminPassword, updateAdminPassword } from '../lib/adminConfig.js'
+import { verifyAdminPassword, updateAdminPassword, getLanguage } from '../lib/adminConfig.js'
 
 const router = Router()
 
@@ -13,6 +13,12 @@ const LoginSchema = z.object({
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+})
+
+// Public — every view fetches this on startup to apply the shop-wide language setting.
+router.get('/language', async (_req, res) => {
+  const language = await getLanguage()
+  res.json({ data: { language } })
 })
 
 router.post('/login', async (req, res) => {

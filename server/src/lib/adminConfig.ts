@@ -28,3 +28,12 @@ export async function updateAdminPassword(newPassword: string): Promise<void> {
   const passwordHash = await bcrypt.hash(newPassword, 10)
   await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { passwordHash } })
 }
+
+export async function getLanguage(): Promise<string> {
+  const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
+  return config?.language ?? 'en'
+}
+
+export async function setLanguage(language: string): Promise<void> {
+  await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { language } })
+}
