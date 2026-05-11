@@ -6,6 +6,7 @@ import Tab from '@mui/material/Tab'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
+import CardMedia from '@mui/material/CardMedia'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import type { MenuItem } from '@coffee/shared'
@@ -32,6 +33,7 @@ export default function MenuPanel() {
   const { cart, addItem } = useOrderStore()
   const showDescription = useMenuDisplayStore((s) => s.showDescription)
   const showComposition = useMenuDisplayStore((s) => s.showComposition)
+  const showImage = useMenuDisplayStore((s) => s.showImage)
   const { i18n } = useTranslation()
   const lang = i18n.resolvedLanguage ?? 'en'
 
@@ -83,6 +85,7 @@ export default function MenuPanel() {
             onAdd={() => addItem(item)}
             showDescription={showDescription}
             showComposition={showComposition}
+            showImage={showImage}
             lang={lang}
           />
         ))}
@@ -102,13 +105,14 @@ interface MenuItemCardProps {
   onAdd: () => void
   showDescription: boolean
   showComposition: boolean
+  showImage: boolean
   lang: string
 }
 
 // A single menu item card. The entire card surface is a tap target — no separate add button.
 // quantity is the total across all cart lines for this item (may span multiple note variants).
 // The blue border and ×N badge give at-a-glance feedback without cluttering the card face.
-function MenuItemCard({ item, quantity, onAdd, showDescription, showComposition, lang }: MenuItemCardProps) {
+function MenuItemCard({ item, quantity, onAdd, showDescription, showComposition, showImage, lang }: MenuItemCardProps) {
   const description = getLocalized(item, lang, 'description')
   const composition = getLocalized(item, lang, 'composition')
   return (
@@ -124,6 +128,14 @@ function MenuItemCard({ item, quantity, onAdd, showDescription, showComposition,
       {/* Full-card tap target — the whole card adds one more of this item */}
       {/* '&&' doubles CSS specificity to beat ButtonBase's built-in inline-flex/center defaults */}
       <CardActionArea onClick={onAdd} sx={{ height: '100%', '&&': { display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' } }}>
+        {showImage && item.imageUrl && (
+          <CardMedia
+            component="img"
+            image={item.imageUrl}
+            alt={item.name}
+            sx={{ height: 120, objectFit: 'contain', px: 1, pt: 1 }}
+          />
+        )}
         <CardContent sx={{ textAlign: 'center', width: '100%' }}>
           <Typography variant="h6" fontWeight="bold" sx={{ fontSize: 'var(--fs-primary)', lineHeight: 1.3 }}>
             {item.name}

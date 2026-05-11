@@ -12,11 +12,14 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
+import { mkdirSync } from 'node:fs'
+import multer from 'multer'
 import type { Server as IoServer } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents, MenuSnapshot } from '@coffee/shared'
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
-import { setLanguage, getQrBaseUrl, setQrBaseUrl, setDarkMode, setShowDescription, setShowComposition } from '../lib/adminConfig.js'
+import { setLanguage, getQrBaseUrl, setQrBaseUrl, setDarkMode, setShowDescription, setShowComposition, setShowImage } from '../lib/adminConfig.js'
 
 const CategoryCreateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -56,6 +59,27 @@ const OrderFilterSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   tableId: z.string().optional(),
+})
+
+// Multer setup for menu image uploads. Files are stored under server/uploads/menu-images/
+// with a UUID filename to avoid collisions and prevent path traversal from original names.
+// Only common image MIME types are accepted; SVG is included for composition diagrams.
+const UPLOAD_DIR = path.resolve(import.meta.dirname, '../../uploads/menu-images')
+mkdirSync(UPLOAD_DIR, { recursive: true })
+
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase()
+      cb(null, `${randomUUID()}${ext}`)
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
+    cb(null, allowed.includes(file.mimetype))
+  },
 })
 
 // Fetches the public menu snapshot (available items in non-paused categories) and broadcasts it.
@@ -479,6 +503,34 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
     try {
       await setShowComposition(result.data.showComposition)
+      res.json({ data: { ok: true } })
+    } catch {
+      res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
+    }
+  })
+
+  // ─── Image upload ─────────────────────────────────────────────────────────────
+
+  // Accepts a single image file (multipart/form-data, field "image") and stores it under
+  // server/uploads/menu-images/. Returns a root-relative URL the client stores in imageUrl.
+  // The upload is item-agnostic — the URL is saved when the item form is submitted, so the
+  // same endpoint works for both new items and edits without needing to know the item ID.
+  router.post('/upload/menu-image', imageUpload.single('image'), (req, res) => {
+    if (!req.file) {
+      res.status(400).json({ error: 'No image or unsupported file type (jpeg/png/gif/webp/svg only)', code: 'VALIDATION_ERROR' })
+      return
+    }
+    res.status(201).json({ data: { url: `/uploads/menu-images/${req.file.filename}` } })
+  })
+
+  router.put('/settings/show-image', async (req, res) => {
+    const result = z.object({ showImage: z.boolean() }).safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: 'showImage must be a boolean', code: 'VALIDATION_ERROR' })
+      return
+    }
+    try {
+      await setShowImage(result.data.showImage)
       res.json({ data: { ok: true } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })

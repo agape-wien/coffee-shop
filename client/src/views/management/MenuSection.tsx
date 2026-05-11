@@ -7,7 +7,7 @@
 // After any mutation the section re-fetches from the server. The server also broadcasts
 // menu:updated to all management room subscribers, but the local re-fetch is the source
 // of truth for this view — it avoids depending on the socket state being set up.
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
@@ -28,6 +28,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
@@ -88,6 +90,11 @@ export default function MenuSection({ token }: { token: string }) {
   })
   const [itemForm, setItemForm] = useState<typeof EMPTY_ITEM & { categoryId: string }>({ ...EMPTY_ITEM, categoryId: '' })
   const [itemTranslations, setItemTranslations] = useState<TranslationMap>({ ...EMPTY_TRANSLATIONS })
+  // 'url' = manual text field; 'upload' = server-hosted file. Both write to itemForm.imageUrl.
+  // Mode is auto-detected on dialog open: server-hosted URLs start with /uploads/.
+  const [imageMode, setImageMode] = useState<'url' | 'upload'>('url')
+  const [imageUploading, setImageUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -153,6 +160,7 @@ export default function MenuSection({ token }: { token: string }) {
   const openAddItem = (categoryId: string) => {
     setItemForm({ ...EMPTY_ITEM, categoryId, sortOrder: 1 })
     setItemTranslations({ de: { description: '', composition: '' }, ro: { description: '', composition: '' } })
+    setImageMode('url')
     setItemDialog({ open: true, editing: null, categoryId })
   }
 
@@ -163,7 +171,27 @@ export default function MenuSection({ token }: { token: string }) {
       trMap[tr.language] = { description: tr.description ?? '', composition: tr.composition ?? '' }
     }
     setItemTranslations(trMap)
+    setImageMode(item.imageUrl?.startsWith('/uploads/') ? 'upload' : 'url')
     setItemDialog({ open: true, editing: item, categoryId: item.categoryId })
+  }
+
+  const handleImageUpload = async (file: File) => {
+    setImageUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const res = await fetch('/api/v1/management/upload/menu-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const json = await res.json() as { data?: { url: string } }
+      if (json.data?.url) setItemForm(f => ({ ...f, imageUrl: json.data!.url }))
+    } catch {
+      // upload failed — user can retry
+    } finally {
+      setImageUploading(false)
+    }
   }
 
   const saveItem = async () => {
@@ -329,7 +357,65 @@ export default function MenuSection({ token }: { token: string }) {
           <TextField label={t('management.menu.name')} value={itemForm.name} onChange={(e) => setItemForm(f => ({ ...f, name: e.target.value }))} fullWidth size="small" autoFocus />
           <TextField label={t('management.menu.description')} value={itemForm.description ?? ''} onChange={(e) => setItemForm(f => ({ ...f, description: e.target.value }))} fullWidth size="small" multiline rows={2} />
           <TextField label={t('management.menu.composition')} value={itemForm.composition ?? ''} onChange={(e) => setItemForm(f => ({ ...f, composition: e.target.value }))} fullWidth size="small" placeholder="e.g. 1/3 espresso + 2/3 microfoam" />
-          <TextField label={t('management.menu.imageUrl')} value={itemForm.imageUrl ?? ''} onChange={(e) => setItemForm(f => ({ ...f, imageUrl: e.target.value }))} fullWidth size="small" />
+          <Box>
+            <ToggleButtonGroup
+              value={imageMode}
+              exclusive
+              onChange={(_, v: 'url' | 'upload') => { if (v) setImageMode(v) }}
+              size="small"
+              sx={{ mb: 1 }}
+            >
+              <ToggleButton value="url" sx={{ textTransform: 'none', px: 2 }}>{t('management.menu.imageExternal')}</ToggleButton>
+              <ToggleButton value="upload" sx={{ textTransform: 'none', px: 2 }}>{t('management.menu.imageUploadMode')}</ToggleButton>
+            </ToggleButtonGroup>
+
+            {imageMode === 'url' ? (
+              <TextField
+                label={t('management.menu.imageUrl')}
+                value={itemForm.imageUrl ?? ''}
+                onChange={(e) => setItemForm(f => ({ ...f, imageUrl: e.target.value }))}
+                fullWidth size="small"
+              />
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void handleImageUpload(file)
+                    e.target.value = ''
+                  }}
+                />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={imageUploading}
+                    startIcon={imageUploading ? <CircularProgress size={14} color="inherit" /> : undefined}
+                  >
+                    {t('management.menu.chooseImage')}
+                  </Button>
+                  {itemForm.imageUrl && (
+                    <Button size="small" color="error" onClick={() => setItemForm(f => ({ ...f, imageUrl: '' }))}>
+                      {t('management.menu.clearImage')}
+                    </Button>
+                  )}
+                </Box>
+                {itemForm.imageUrl && (
+                  <Box
+                    component="img"
+                    src={itemForm.imageUrl}
+                    alt="preview"
+                    sx={{ maxHeight: 120, maxWidth: '100%', objectFit: 'contain', alignSelf: 'flex-start', border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}
+                  />
+                )}
+              </Box>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>{t('management.menu.type')}</InputLabel>

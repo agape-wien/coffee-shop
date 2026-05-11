@@ -54,15 +54,17 @@ function ThemeSync() {
 function MenuDisplaySync() {
   const setShowDescription = useMenuDisplayStore((s) => s.setShowDescription)
   const setShowComposition = useMenuDisplayStore((s) => s.setShowComposition)
+  const setShowImage = useMenuDisplayStore((s) => s.setShowImage)
   useEffect(() => {
     fetch('/api/v1/auth/menu-display')
       .then((r) => r.json())
-      .then((json: { data?: { showDescription: boolean; showComposition: boolean } }) => {
+      .then((json: { data?: { showDescription: boolean; showComposition: boolean; showImage: boolean } }) => {
         if (typeof json.data?.showDescription === 'boolean') setShowDescription(json.data.showDescription)
         if (typeof json.data?.showComposition === 'boolean') setShowComposition(json.data.showComposition)
+        if (typeof json.data?.showImage === 'boolean') setShowImage(json.data.showImage)
       })
       .catch(() => {})
-  }, [setShowDescription, setShowComposition])
+  }, [setShowDescription, setShowComposition, setShowImage])
   return null
 }
 

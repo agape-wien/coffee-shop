@@ -78,6 +78,10 @@
       "addItemTitle": "Add item",
       "description": "Description",
       "imageUrl": "Image URL",
+      "imageExternal": "External URL",
+      "imageUploadMode": "Upload",
+      "chooseImage": "Choose image",
+      "clearImage": "Clear",
       "type": "Type",
       "category": "Category",
       "espressoPortions": "Espresso portions (ee)",
@@ -166,7 +170,8 @@
       "darkMode": "Dark mode",
       "menuDisplay": "Menu item display",
       "showDescription": "Show item description",
-      "showComposition": "Show item composition"
+      "showComposition": "Show item composition",
+      "showImage": "Show item image"
     }
   }
 }

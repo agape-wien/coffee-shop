@@ -7,7 +7,7 @@
 
 ## Current status
 
-**Phase:** Phase 11 in progress — category pause, composition, display toggles, item translations, and status badge fix done; image rendering is next  
+**Phase:** Phase 11 complete — all planned features done  
 **Last updated:** 2026-05-11  
 **Active work:** Nothing in progress — session closed cleanly.
 
@@ -240,15 +240,23 @@
 
 ---
 
-## Next up — Phase 11 remaining
+### Menu item images ✅
+- `showImage Boolean @default(true)` added to `AdminConfig`; `prisma db push` applied
+- `getMenuDisplay()` / `setShowImage()` in `adminConfig.ts`; included in `GET /api/v1/auth/menu-display` automatically
+- `PUT /api/v1/management/settings/show-image` (auth-protected)
+- `menuDisplayStore` extended with `showImage` / `setShowImage` (localStorage fast path + DB sync via `MenuDisplaySync`)
+- `MenuPanel.tsx`: `CardMedia` renders the image at 120 px height, `objectFit: contain` — only when `showImage && item.imageUrl`
+- Settings tab: "Show item image" toggle added below description/composition switches
+- Translations: `showImage` in EN / DE / RO
 
-Priority order. Each item is independent.
-
-### 1 — Menu item images (composition visualization)
-`imageUrl` already exists on `MenuItem` and is stored in the DB but nothing renders it. Intended use: a small diagram showing ingredient proportions (e.g. a layered cup illustration for a cappuccino) rather than a photo.
-- Render `imageUrl` as a fixed-size image on item cards in the ordering view
-- Show/hide controlled by a third toggle alongside P5 (or always shown when set)
-- No server changes needed — field and CRUD already exist
+### Server image uploads ✅
+- `multer@2.x` added to server dependencies; Docker image rebuilt
+- `./server/uploads:/app/server/uploads` bind-mount added to `docker-compose.yaml` — files persist across container restarts
+- `server/uploads/menu-images/` created on host; `mkdirSync` in management.ts ensures it exists in container
+- `app.ts` serves `/uploads` as static at startup (before Vite catch-all)
+- `POST /api/v1/management/upload/menu-image` — accepts `multipart/form-data`, field `image`; validates MIME type; stores with UUID filename; returns root-relative URL
+- Management item dialog: `imageUrl` text field replaced with a two-mode picker (External URL / Upload). Mode auto-detected on open (`/uploads/` prefix → upload mode). Upload triggers immediately on file pick, shows live preview. Both modes write to the same `imageUrl` field. Switching modes preserves the current value.
+- Translations: `imageExternal`, `imageUploadMode`, `chooseImage`, `clearImage` in EN / DE / RO
 
 ---
 
@@ -337,5 +345,6 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 | QR base URL in AdminConfig | Stored in DB (`qrBaseUrl String @default("")`), not in env var | The URL is a runtime concern — it changes whenever the network changes, not when the app is deployed. Storing it in the DB lets the admin update it through the Settings UI without a redeploy or container restart. Empty string falls back to `window.location.origin`. |
 | `crypto.randomUUID` fallback | `newLineId()` in `orderStore.ts` feature-detects and falls back to `Math.random` UUID v4 | The app runs over plain HTTP on a local network IP, which is not a secure context. `crypto.randomUUID()` is undefined in non-secure contexts, crashing the add-to-cart flow on any device accessing via IP. The fallback is sufficient because `lineId` is client-only state, never stored in the DB. |
 | `touch-action: manipulation` on body | Applied globally, not per-view | Double-tap zoom is unwanted in every view (kiosk, barista, counter, pickup, management). A global rule is simpler and eliminates the risk of forgetting it on a new view. `manipulation` preserves pinch-zoom unlike `user-scalable=no`. |
+| Image rendering | `CardMedia` with `objectFit: contain`, fixed height 120 px | These are composition diagrams, not photos — `contain` preserves the full image without cropping. Fixed height keeps the card grid uniform regardless of image aspect ratio. |
 | `z.string().url()` avoided for QR URL validation | Custom `.refine()` with `new URL()` + protocol check | `new URL()` throws on exotic schemes (e.g. `h://j`) rather than returning a parse failure, which can propagate through `safeParse` in some Zod versions and crash the route handler. The explicit `http:`/`https:` protocol check is also the correct semantic constraint — only those protocols make sense as an ordering page base URL. |
 | Dark mode state management | Zustand `themeStore` (not prop-threading or React Context) | SettingsSection is three components deep from App. A Zustand store avoids threading a callback through ManagementView → ManagementShell → SettingsSection, and follows the existing Zustand pattern already used for menu/orders. Mirrors the two-tier language pattern: localStorage = fast initial value (no flash), DB = authoritative sync on startup. |

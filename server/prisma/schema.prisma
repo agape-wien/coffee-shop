@@ -23,6 +23,7 @@ model AdminConfig {
   darkMode        Boolean @default(false)
   showDescription Boolean @default(true)
   showComposition Boolean @default(true)
+  showImage       Boolean @default(true)
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────

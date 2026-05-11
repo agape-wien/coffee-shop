@@ -31,6 +31,11 @@ export async function mountRoutes(
   io: IoServer<ClientToServerEvents, ServerToClientEvents>,
   httpServer: HttpServer
 ): Promise<void> {
+  // Serve uploaded menu images. Registered before API routes so Express handles them directly
+  // without falling through to Vite's catch-all SPA handler.
+  const uploadsPath = path.resolve(import.meta.dirname, '../uploads')
+  app.use('/uploads', express.static(uploadsPath))
+
   app.get('/api/v1/health', (_req, res) => {
     res.json({ ok: true })
   })

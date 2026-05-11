@@ -27,6 +27,7 @@ services:
     volumes:
       - ./server/src:/app/server/src
       - ./server/prisma:/app/server/prisma
+      - ./server/uploads:/app/server/uploads
       - ./client:/app/client
       - ./packages/shared/src:/app/packages/shared/src
     ports:

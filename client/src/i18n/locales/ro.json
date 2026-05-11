@@ -80,6 +80,10 @@
       "addItemTitle": "Adăugare produs",
       "description": "Descriere",
       "imageUrl": "URL imagine",
+      "imageExternal": "URL extern",
+      "imageUploadMode": "Încărcare",
+      "chooseImage": "Alege imaginea",
+      "clearImage": "Elimină",
       "type": "Tip",
       "category": "Categorie",
       "espressoPortions": "Porții espresso (ee)",
@@ -168,7 +172,8 @@
       "darkMode": "Mod întunecat",
       "menuDisplay": "Afișare produse meniu",
       "showDescription": "Afișați descrierea produsului",
-      "showComposition": "Afișați compoziția produsului"
+      "showComposition": "Afișați compoziția produsului",
+      "showImage": "Afișați imaginea produsului"
     }
   }
 }

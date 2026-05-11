@@ -44,8 +44,11 @@ export default function SettingsSection({ token }: { token: string }) {
   const setShowDescription = useMenuDisplayStore((s) => s.setShowDescription)
   const showComposition = useMenuDisplayStore((s) => s.showComposition)
   const setShowComposition = useMenuDisplayStore((s) => s.setShowComposition)
+  const showImage = useMenuDisplayStore((s) => s.showImage)
+  const setShowImage = useMenuDisplayStore((s) => s.setShowImage)
   const [descSaving, setDescSaving] = useState(false)
   const [compSaving, setCompSaving] = useState(false)
+  const [imageSaving, setImageSaving] = useState(false)
 
   // Fetch the current DB language on mount so the picker reflects the stored value,
   // not just the browser's cached preference.
@@ -164,6 +167,22 @@ export default function SettingsSection({ token }: { token: string }) {
       // Best-effort: local state already updated, DB sync is fire-and-forget
     } finally {
       setCompSaving(false)
+    }
+  }
+
+  const saveShowImage = async (v: boolean) => {
+    setShowImage(v)
+    setImageSaving(true)
+    try {
+      await fetch('/api/v1/management/settings/show-image', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ showImage: v }),
+      })
+    } catch {
+      // Best-effort: local state already updated, DB sync is fire-and-forget
+    } finally {
+      setImageSaving(false)
     }
   }
 
@@ -351,6 +370,19 @@ export default function SettingsSection({ token }: { token: string }) {
             label={t('management.settings.showComposition')}
           />
           {compSaving && <CircularProgress size={18} />}
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showImage}
+                onChange={(e) => void saveShowImage(e.target.checked)}
+                disabled={imageSaving}
+              />
+            }
+            label={t('management.settings.showImage')}
+          />
+          {imageSaving && <CircularProgress size={18} />}
         </Box>
       </Box>
     </Box>

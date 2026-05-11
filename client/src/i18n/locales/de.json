@@ -78,6 +78,10 @@
       "addItemTitle": "Artikel hinzufügen",
       "description": "Beschreibung",
       "imageUrl": "Bild-URL",
+      "imageExternal": "Externe URL",
+      "imageUploadMode": "Hochladen",
+      "chooseImage": "Bild auswählen",
+      "clearImage": "Entfernen",
       "type": "Typ",
       "category": "Kategorie",
       "espressoPortions": "Espresso-Portionen (ee)",
@@ -166,7 +170,8 @@
       "darkMode": "Dunkelmodus",
       "menuDisplay": "Menüelement-Anzeige",
       "showDescription": "Beschreibung anzeigen",
-      "showComposition": "Zusammensetzung anzeigen"
+      "showComposition": "Zusammensetzung anzeigen",
+      "showImage": "Bild anzeigen"
     }
   }
 }
