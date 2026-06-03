@@ -3,6 +3,8 @@
 ## What this project is
 A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR code at table). Baristas see live queues. A pickup display shows ready order numbers. Staff manage menu via an admin panel.
 
+The screen design maps directly to a real 4-person paper-ticket coffee shop workflow (prep person, barista, counter person). Decisions that look unusual almost always have a real-world operational reason behind them.
+
 ## Tech stack
 | Layer | Choice |
 |-------|--------|
@@ -50,6 +52,17 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 
 **Responsive layout rule:** All two-panel views stack panels vertically in portrait orientation and place them side-by-side in landscape. Use `useMediaQuery('(orientation: landscape)')` — not width breakpoints — so the layout follows device rotation on tablets and phones.
 
+## Domain logic
+
+### Cart line grouping (orderStore)
+Pressing a menu card increments the one `CartLine` for that item whose `notes === ''` (the accumulator line). Once notes are typed that line is locked, and the next press creates a new line. This enables "2× flat white cold milk + 1× flat white oat milk" without a modifiers system. The badge on the menu card sums across all lines for that item.
+
+### Order number override
+When staff type a custom number before placing (for paper block changes mid-shift), the server upserts the daily counter to that value so auto-increment resumes from override+1. `GET /api/v1/orders/next-number` is read-only — it previews the next number but does not consume one.
+
+### v1 is kiosk-first
+The primary daily workflow is staff at the bar kiosk. Table/QR mode (`isTokenMode`) is built but secondary. The order number field and table picker are hidden in token mode because they make no sense on a customer self-order screen.
+
 ## Socket.io conventions
 - Event names: `domain:action` — e.g. `order:placed`, `order:status_updated`
 - Rooms: `kitchen`, `display`, `management`, `order:{orderId}`
@@ -68,6 +81,8 @@ A real-time coffee shop ordering system. Customers order via kiosk or mobile (QR
 - Zod for runtime validation at API boundaries (both REST and Socket.io payloads)
 - Prisma is the only way to touch the database — no raw SQL except in migrations
 - Unconventional choices require a written justification: a code comment or a `docs/TRACKER.md` decision log entry
+- The app runs over plain HTTP on a local network — not HTTPS, not localhost for client devices. Web Crypto APIs that require a secure context (e.g. `crypto.randomUUID()`) are unavailable on customer/staff devices connecting via IP. Use the `newLineId()` fallback pattern in `orderStore.ts` (feature-detects, falls back to a `Math.random`-based UUID v4).
+- Do not add a "first connect vs. reconnect" distinction unless behavior genuinely differs. If an operation is correct to run every time, run it every time — the extra guard adds hidden complexity with no benefit.
 
 ## Code documentation standard
 Every non-trivial function or module needs two things documented:
@@ -93,6 +108,14 @@ The line to avoid: don't write a *what* comment that just restates the function 
 - Receipt printing: not planned
 - Authentication: JWT, single admin credential for v1 (not multi-user)
 
+## Styling architecture
+Global design tokens live in `client/src/index.css` as CSS custom properties at `:root`. Currently defined: `--fs-primary`, `--fs-secondary`, `--fs-small` for the three font size tiers.
+
+Dark mode is implemented via:
+- MUI `ThemeProvider` in `App.tsx` — handles MUI component colors
+- `[data-theme="dark"]` block in `index.css` — extension point for custom CSS variable overrides
+- `themeStore.ts` (Zustand, persisted to localStorage + `AdminConfig.darkMode` in DB)
+
 ## Development workflow
 ```bash
 # Start everything with hot reload
@@ -101,7 +124,9 @@ docker compose up -d
 # App (frontend + API): http://localhost:3001
 # DB:                   localhost:5432
 ```
-Vite runs as Express middleware in dev — there is no separate frontend container or port.
+Vite runs as Express middleware (`middlewareMode: true`) inside the server process — there is no separate frontend container or port. This was a deliberate architecture change after the initial scaffold.
+
+**After `prisma db push`, restart the server container** (`docker compose restart server`). `tsx watch` hot-reload caches the Prisma client module and does not reload native modules on file changes. Without a restart, new schema columns return `undefined` and silently fall through to their defaults (e.g. `darkMode` always reads `false`).
 
 ## Collaboration rules
 This project is also a learning exercise. That changes how feedback works:
