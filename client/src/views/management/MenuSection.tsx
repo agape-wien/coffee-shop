@@ -445,13 +445,13 @@ export default function MenuSection({ token }: { token: string }) {
           <TextField
             label={t('management.menu.description')}
             value={itemTranslations.de?.description ?? ''}
-            onChange={(e) => setItemTranslations(m => ({ ...m, de: { ...m.de, description: e.target.value } }))}
+            onChange={(e) => setItemTranslations(m => ({ ...m, de: { description: e.target.value, composition: m.de?.composition ?? '' } }))}
             fullWidth size="small" multiline rows={2}
           />
           <TextField
             label={t('management.menu.composition')}
             value={itemTranslations.de?.composition ?? ''}
-            onChange={(e) => setItemTranslations(m => ({ ...m, de: { ...m.de, composition: e.target.value } }))}
+            onChange={(e) => setItemTranslations(m => ({ ...m, de: { description: m.de?.description ?? '', composition: e.target.value } }))}
             fullWidth size="small"
           />
 
@@ -460,13 +460,13 @@ export default function MenuSection({ token }: { token: string }) {
           <TextField
             label={t('management.menu.description')}
             value={itemTranslations.ro?.description ?? ''}
-            onChange={(e) => setItemTranslations(m => ({ ...m, ro: { ...m.ro, description: e.target.value } }))}
+            onChange={(e) => setItemTranslations(m => ({ ...m, ro: { description: e.target.value, composition: m.ro?.composition ?? '' } }))}
             fullWidth size="small" multiline rows={2}
           />
           <TextField
             label={t('management.menu.composition')}
             value={itemTranslations.ro?.composition ?? ''}
-            onChange={(e) => setItemTranslations(m => ({ ...m, ro: { ...m.ro, composition: e.target.value } }))}
+            onChange={(e) => setItemTranslations(m => ({ ...m, ro: { description: m.ro?.description ?? '', composition: e.target.value } }))}
             fullWidth size="small"
           />
         </DialogContent>
