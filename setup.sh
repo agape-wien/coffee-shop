@@ -1,6 +1,7 @@
 #!/bin/bash
 # One-time setup script for the Raspberry Pi.
-# Run this once after cloning the repo: bash setup.sh
+# Clone the repo to /opt/coffee-shop first, then run from inside it:
+#   sudo git clone <repo-url> /opt/coffee-shop && cd /opt/coffee-shop && sudo bash setup.sh
 set -e
 
 echo "=== Coffee shop — first-time Pi setup ==="
@@ -56,6 +57,15 @@ fi
 echo ""
 echo "=== Initial build and start (this takes several minutes on first run) ==="
 docker compose -f docker-compose.prod.yaml up -d --build
+
+echo ""
+echo "=== Adding pi to the docker group ==="
+# The systemd service runs autoupdate.sh as the pi user.
+# Without this, docker commands would fail with a permission error.
+# The group change takes effect on next login — the service itself starts
+# after a full reboot, by which point the group membership is active.
+usermod -aG docker pi
+echo "pi added to docker group."
 
 echo ""
 echo "=== Installing systemd service ==="

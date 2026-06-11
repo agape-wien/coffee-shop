@@ -5,7 +5,7 @@
 # and skips npm install entirely when package.json hasn't changed.
 set -e
 
-cd /root/coffee-shop
+cd /opt/coffee-shop
 
 echo "[autoupdate] Pulling latest code..."
 git pull
