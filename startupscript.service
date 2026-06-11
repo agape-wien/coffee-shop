@@ -1,0 +1,13 @@
+[Unit]
+Description=Coffee Shop App — auto-update and start
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/coffee-shop
+ExecStart=/bin/bash /root/coffee-shop/autoupdate.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

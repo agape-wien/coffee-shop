@@ -33,7 +33,7 @@
 - [x] Vite runs as Express middleware in dev — single port (3001), no proxy, no separate client container
 - [x] `server/prisma` bind-mounted so seed changes don't require image rebuild
 - [x] `.gitignore` — excludes `node_modules/`, `dist/`, `.vite/`, `.env`, build artifacts
-- [ ] `docker-compose.yml` — production variant (nginx, compiled builds) (**not started**)
+- [x] `docker-compose.prod.yaml` + `server/Dockerfile.prod` — production variant (multi-stage build, compiled client + server, port 80)
 
 ### Phase 2 — Database schema + Prisma
 - [x] `server/prisma/schema.prisma` — full schema: Category, MenuItem, Table, Order, OrderItem, DailyCounter

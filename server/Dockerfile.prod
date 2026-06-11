@@ -1,0 +1,66 @@
+# Stage 1: Build — compiles the client (Vite) and server (tsc) into their dist/ directories.
+# All devDependencies are available here; the output is just static files and JS.
+FROM node:25-alpine AS builder
+WORKDIR /app
+
+# Prisma's query engine links against OpenSSL dynamically. Must be installed before
+# npm install so `prisma generate` (triggered by postinstall) can find the library.
+RUN apk add --no-cache openssl
+
+# Copy workspace manifests first — Docker caches this layer until any package.json changes.
+COPY package.json ./
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN npm install
+
+# Generate Prisma client before copying source (schema is the only thing needed here).
+COPY server/prisma ./server/prisma
+RUN npm run db:generate --workspace=server
+
+# Copy all source code and configs needed for the builds.
+COPY server/src ./server/src
+COPY server/tsconfig.json ./server/tsconfig.json
+COPY client/src ./client/src
+COPY client/index.html ./client/index.html
+COPY client/vite.config.ts ./client/vite.config.ts
+COPY client/tsconfig.json ./client/tsconfig.json
+COPY packages/shared/src ./packages/shared/src
+
+RUN npm run build --workspace=client
+RUN npm run build --workspace=server
+
+# Stage 2: Runtime — lean image with only what's needed to run the compiled app.
+FROM node:25-alpine
+WORKDIR /app
+
+RUN apk add --no-cache openssl
+
+# Copy workspace manifests for npm install.
+COPY package.json ./
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+COPY packages/shared/package.json ./packages/shared/
+
+# Install production dependencies only. prisma CLI is in server/dependencies (not devDependencies)
+# so it is included here — it is required at container startup for `prisma db push`.
+RUN npm install --omit=dev
+
+# Regenerate the Prisma client against the runtime platform (arm64 on a Pi, amd64 on x86).
+# The builder-stage binary targets the build platform and cannot be reused here.
+COPY server/prisma ./server/prisma
+RUN npm run db:generate --workspace=server
+
+# Copy compiled output from the builder stage.
+COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/client/dist ./client/dist
+
+# Uploads directory — override with a bind-mount or named volume to persist files across deploys.
+RUN mkdir -p ./server/uploads/menu-images
+
+ENV NODE_ENV=production
+EXPOSE 3001
+
+# Apply any pending schema changes (idempotent when schema is unchanged), then start the server.
+CMD ["sh", "-c", "npx prisma db push --schema=./server/prisma/schema.prisma && node server/dist/index.js"]
