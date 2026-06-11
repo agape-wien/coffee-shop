@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/coffee-shop
 ExecStart=/bin/bash /opt/coffee-shop/autoupdate.sh
-User=pi
+User=agapewien
 RemainAfterExit=yes
 
 [Install]
