@@ -4,12 +4,7 @@
 #   sudo git clone <repo-url> /opt/coffee-shop && cd /opt/coffee-shop && sudo bash setup.sh
 set -e
 
-# Resolve the non-root user who invoked sudo. Falls back to the current user
-# if the script is run directly as root (no sudo wrapper).
-DEPLOY_USER="${SUDO_USER:-$(whoami)}"
-
 echo "=== Coffee shop — first-time Pi setup ==="
-echo "Running as sudo on behalf of user: ${DEPLOY_USER}"
 echo ""
 
 # Verify Docker is running.
@@ -64,18 +59,17 @@ echo "=== Initial build and start (this takes several minutes on first run) ==="
 docker compose -f docker-compose.prod.yaml up -d --build
 
 echo ""
-echo "=== Adding ${DEPLOY_USER} to the docker group ==="
-# The systemd service runs autoupdate.sh as the deploy user.
+echo "=== Adding agapewien to the docker group ==="
+# The systemd service runs autoupdate.sh as agapewien.
 # Without this, docker commands would fail with a permission error.
 # The group change takes effect on next login — the service itself starts
 # after a full reboot, by which point the group membership is active.
-usermod -aG docker "${DEPLOY_USER}"
-echo "${DEPLOY_USER} added to docker group."
+usermod -aG docker agapewien
+echo "agapewien added to docker group."
 
 echo ""
 echo "=== Installing systemd service ==="
-# Substitute the actual username into the service file before installing it.
-sed "s/User=agapewien/User=${DEPLOY_USER}/" startupscript.service > /etc/systemd/system/startupscript.service
+cp startupscript.service /etc/systemd/system/startupscript.service
 systemctl daemon-reload
 systemctl enable startupscript.service
 echo "Service enabled — will auto-start on every boot."
