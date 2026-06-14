@@ -8,8 +8,8 @@
 ## Current status
 
 **Phase:** Phase 11 complete — all planned features done  
-**Last updated:** 2026-05-11  
-**Active work:** Nothing in progress — session closed cleanly.
+**Last updated:** 2026-06-14  
+**Active work:** Production feedback items 1–5 completed this session.
 
 ---
 
@@ -260,12 +260,153 @@
 
 ---
 
+## Production test feedback — to fix before first real use
+
+Issues and improvements found during the first real-device test. Work through these in order in the next session.
+
+### 1. Increase global font sizes ✅
+- `--fs-primary: 1.5rem → 2.25rem`, `--fs-secondary: 1.2rem → 1.8rem`, `--fs-small: 1.0rem → 1.5rem` (all ×1.5)
+
+### 2. Pickup screen — responsive card sizing ✅
+- Cards now `width: calc((100vw - 6 * 24px) / 5)` (1/5 screen width with matching padding+gap of 24px)
+- Font changed from `5rem` hardcoded to `5vw` (scales with screen)
+
+### 3. Switch from `prisma db push` to proper migrations ✅
+- Baseline migration `0001_baseline` created via `prisma migrate diff` and marked applied with `prisma migrate resolve`
+- `Dockerfile.prod` CMD updated: `prisma db push` → `prisma migrate deploy`
+
+### 4. Pickup screen language — separate from app language ✅
+- `AdminConfig.pickupLanguage String @default("en")` added; migration `20260614193634_add_pickup_language` applied
+- `getPickupLanguage` / `setPickupLanguage` in `adminConfig.ts`
+- `GET /api/v1/auth/pickup-language` (public) and `PUT /api/v1/management/settings/pickup-language` (auth)
+- `PickupView.tsx`: fetches pickup language on mount; `BADGE_LETTERS` map: EN=C/O, DE=K/A, RO=C/A
+- `SettingsSection.tsx`: second language selector ("Pickup display language") below the app language selector
+
+### 5. Notes field keyboard overlap on mobile ✅
+- `CartLineItem` in `CartPanel.tsx` replaced inline `TextField` (keyboard-covered) with a MUI `Dialog`
+- Dialog opens on item name tap, has Save/Cancel, uses local draft state (Cancel reverts)
+- Cart line shows saved notes as a tappable summary line (tap to reopen dialog)
+
+### 6. Collapsible order summary in Management → Orders tab
+- The summary section (3 scalar cards + per-item breakdown) is always visible; collapse it by default
+- Add a "Summary" header row with a chevron icon (collapsed by default, expands on click)
+- The existing three scalar cards (Orders, Coffee equivalent, Milk) and per-item breakdown card stay as-is inside the collapsible
+- Relevant file: `client/src/views/management/OrdersSection.tsx` — `computeSummary()` and the summary card block
+
+### 7. Time granularity in order filter (Management → Orders tab)
+- Currently the filter is date-only; add time inputs so orders can be filtered by a specific time range within a day
+- Relevant file: `client/src/views/management/OrdersSection.tsx` — date filter state and `GET /api/v1/management/orders?from=&to=`
+- The `from` and `to` params already accept ISO datetime strings on the backend; this is purely a UI change
+
+### 8. Bulk delete orders (Management → Orders tab)
+- Add a checkbox to each order row and a "select all" checkbox in the table header
+- "Select all" selects only the currently filtered/visible entries, not the entire database
+- A Delete button appears in the toolbar when at least one entry is selected; disabled otherwise
+- Pressing Delete opens a confirmation modal listing how many orders will be removed; on confirm, deletes them
+- **Permanent deletion** — soft delete (flag + filter everywhere) adds hidden complexity for no real benefit here; orders are operational records, not financial audit trails. Implement as hard delete from DB.
+- New endpoint needed: `DELETE /api/v1/management/orders` with a body of `{ ids: string[] }`, JWT-protected
+- Note: deleting an order does not affect the daily counter — order numbers already issued are never reused regardless
+
+### 9. Font sizes configurable from Management UI (global default)
+- Move font size values from hardcoded CSS into `AdminConfig` (three new columns: `fsPrimary`, `fsSecondary`, `fsSmall`, stored as integers in px)
+- Add a "Font sizes" section in Management → Settings with three number inputs
+- Expose via the existing `GET /api/v1/auth/menu-display` endpoint (or a new public config endpoint) so all views can read them on startup
+- Apply them by writing to CSS custom properties at runtime (`document.documentElement.style.setProperty('--fs-primary', ...)`) — same pattern as dark mode
+- Default values: whatever the current hardcoded values are after item 1 (the 50% increase)
+- This is the foundation for item 10 (per-device override)
+
+### 11. Table label on counter pickup badges
+- Currently the counter pickup panel shows `42 C` / `42 O` with no table context — a server picking it up has no visual signal of where to bring it
+- For table orders (any `tableId` that is not `'bar'`), append the table label to the badge: e.g. `42 C · Table 4`
+- Bar orders remain unchanged (no table label needed — customer is at the counter)
+- Requires `tableLabel` (or `tableId` + a lookup) to be included in the `DonePart` interface already used by `CounterView.tsx`; `tableId` is already on `Order`, just not threaded through to the badge render
+- The pickup display (`/pickup`) intentionally excluded from this change — customers only look for their own number, and the number is enough; adding table text would clutter the big screen for no benefit to the customer
+
+### 12. "Ready" indicator for table orders on the ordering view
+- When a part of a table order transitions to DONE, the Open tab in the ordering view already shows the updated status chip — but nothing draws the server's attention to it
+- Add a visual indicator (e.g. a coloured dot or badge on the Open tab itself, similar to the existing order count badge) that lights up when any open order for the current table has a DONE part
+- The server glances at the screen, sees the indicator, switches to the Open tab, and taps Deliver
+- This indicator should clear once all DONE parts are delivered (tapped) — the existing `order:updated` socket subscription in `CartPanel.tsx` already drives this state, so no new socket work is needed
+- Consider also using a distinct chip colour for DONE parts within the order card (currently uses `success` green — verify it's visible enough at a glance)
+
+### 10. Per-device settings (font size, language, dark/light mode)
+- Each device gets a random UUID stored in localStorage on first visit (`deviceId`). This identifies the device without any login.
+- New DB table `DeviceConfig (deviceId String @id, fsPrimary Int?, fsSecondary Int?, fsSmall Int?, language String?, darkMode Boolean?)` — nullable columns mean "use global default from AdminConfig"
+- A settings button in the **top-left corner of the header** on every view opens a settings modal (not a separate page — modal is the right call: no navigation needed, works cleanly on kiosk/tablet, consistent with the rest of the UI)
+- The modal contains: font size inputs, language selector, dark/light mode toggle
+- On save, writes to `PUT /api/v1/device-config/:deviceId` and applies immediately
+- On load, device config is fetched and merged over the global defaults (device value wins if set, otherwise falls back to AdminConfig)
+- **Scope rules:**
+  - Font size, language, dark/light mode: per-device for all views except pickup
+  - Pickup screen language: global only, configured in Management Settings (item 4), not overridable per device
+  - Management view dark mode / language: per-device, configured via the same settings modal
+- Default on first load or cache clear: light mode, app language from AdminConfig, font sizes from AdminConfig
+- **Dependency:** implement item 9 first (font sizes in DB) — item 10 builds directly on top of it
+
+---
+
 ## Backlog — lower priority improvements
 
 - **Sound alerts re-exposed** — beep code already written in `BaristaView`, button is just hidden. Re-expose as a toggle button with localStorage persistence per device.
 - **Live shift stats** — "Today so far" stat cards (orders, ee portions, milk) visible directly in the management home without navigating to the Orders tab and filtering.
 - **Reconnection indicator (drop state)** — toast currently shows on reconnect; a separate indicator while the socket is *down* (before reconnect) would reduce confusion. P1 covers the reconnect half only.
 - **CSV export** — "Download CSV" button next to the date filter on the Orders tab. Orders endpoint already returns all needed data.
+
+## Playwright e2e test suite — Complete
+
+7 tests across 2 spec files, running sequentially against a live dev server. All pass.
+
+- `e2e/01-ordering.spec.ts` — 5 tests covering the ordering view in isolation
+  - Single item order
+  - Multi-item multi-category order
+  - Notes + cart line grouping (same item with and without notes becomes two lines)
+  - Quantity controls (add, remove, line disappears at zero)
+  - Order number override and counter increment
+- `e2e/02-workflow.spec.ts` — 2 tests using multi-page browser contexts for real-time socket flows
+  - Full coffee preparation: order → barista pending → in-progress → done → counter pickup badge dismissed
+  - Table deliver: order → Open tab → barista done → Deliver button enables → tap → card disappears
+- `e2e/helpers.ts` — shared helpers: `goToOrder`, `addItem`, `selectCategory`, `getCartLine`, `placeOrder`
+- `playwright.config.ts` — `workers: 1`, `fullyParallel: false`, `baseURL: http://localhost:3001`, 20 s test timeout
+
+**Key implementation notes:**
+- Tests intercept `POST /api/v1/orders` to capture the order UUID; all card targeting in workflow tests uses `data-orderid` attributes — immune to DB state from previous runs
+- `data-orderid={order.id}` added to: `BaristaView` `OrderCard`, `CounterView` `PickupBadge`, `CartPanel` open-order `Card`
+- DB accumulates orders across runs by design — the suite is safe to run repeatedly without wiping the DB
+- One-time setup: `npm install && npx playwright install chromium`; run with `npm run test:e2e`
+
+**Not yet implemented (remaining from original testing suite plan):**
+- Vitest + Supertest for backend route/service logic
+- Vitest + React Testing Library for component-level logic
+
+---
+
+## Future ideas — not yet scheduled
+
+### Testing suite (partial — see above)
+The Playwright e2e suite is in place. What remains:
+- **Unit/integration tests:** Vitest + Supertest for the order state machine, daily counter, and auth routes
+- **Component tests:** Vitest + React Testing Library for cart line grouping logic and order number field behaviour
+- Worth adding before the next major feature wave (device config + font size system) to catch regressions
+
+### Printer integration
+Goal: remove dependency on pre-numbered paper ticket blocks. The printer would allow generating tickets on demand and printing other documents.
+
+**Order number tickets:**
+- Print a small ticket with the order number when an order is placed (replaces the paper block)
+- Ticket could include: order number, table, timestamp, item summary
+- Triggered automatically on order placement or manually from the barista/counter view
+
+**QR code printing:**
+- Print QR codes for tables directly from the Management → Tables tab (currently only download as PNG)
+- Could print a sheet with all table QR codes at once
+
+**Stats/summary printing:**
+- Print the end-of-day summary (orders, ee portions, milk totals, per-item breakdown) as a formatted page to put in a folder
+
+**Implementation notes:**
+- Browser `window.print()` with a print-specific CSS stylesheet (`@media print`) is the simplest approach — no driver, no extra hardware protocol, works with any network-connected printer
+- A dedicated `/print/ticket?orderId=X` route that renders a minimal printable page would decouple print layout from the main UI
+- Thermal receipt printer support (ESC/POS protocol) would be a more advanced option for a dedicated receipt printer — requires a small Node.js service or library (`escpos`, `node-thermal-printer`)
 
 ---
 
@@ -336,11 +477,12 @@ Full task breakdown per phase: see `docs/PLANNING.md`
 | Password change minimum length | API enforces 8-char minimum on new passwords; env-var seed bypasses this check | The env-var value may be short for dev convenience (`admin`). The minimum only applies to UI-driven changes, where staff have a keyboard and no excuse for a 4-character password. |
 | Orders summary computed client-side | `computeSummary()` in `OrdersSection.tsx` aggregates totals from the already-fetched order array | No second API call needed — the orders endpoint already returns all required data. Adding a `/summary` endpoint would duplicate the query and add a round trip. The client computation is O(orders × items), which is negligible for the 200-order cap. |
 | No test suite (v1) | Deliberate decision — no unit or integration tests added | For this app size and team, manual verification is faster than the infrastructure cost of a proper test suite (Vitest + Supertest + test DB). One Playwright smoke test at the end of Phase 10/11 is the only testing investment worth making. |
+| e2e test card targeting | `data-orderid` attribute + POST response interception, not item name or order number | The DB accumulates orders across test runs. Item name selectors fail when the same item appears in multiple prior orders (all named "Americano"). Order number selectors fail when the same slot is reused across runs (test 5 resets counter to 1, so every run produces a #2 and #3). UUIDs are unique per order regardless of DB history. `waitForResponse` captures the UUID from the placement response; `data-orderid` on cards makes it queryable in the DOM. |
 | Panel header stacking fix | `bgcolor: 'background.paper'` + `position: 'relative'` + `zIndex: 1` on all panel header boxes; `AppBar position="sticky"` in management | MUI `Card` sets `position: relative` internally, placing it ahead of static siblings in the same stacking context. Without an explicit z-index, panel headers (position: static) paint behind scrolled cards. `position: relative + zIndex: 1` on headers and `position: sticky` on AppBar (which MUI maps to `zIndex: 1100`) corrects the paint order. |
 | i18n library | `react-i18next` + `i18next-browser-languagedetector` | Industry standard for React. The LanguageDetector plugin gives us the localStorage → navigator fallback chain for free. Alternatives (i18n-ally, lingui) require more setup and have smaller ecosystems. |
 | Language storage: two-tier (localStorage + DB) | i18next caches to localStorage; `LanguageSync` component fetches DB on first render and overrides if different | DB is authoritative (admin sets it for the whole shop); localStorage is the fast path (returning devices show correct language immediately without a network round-trip before first render). Pure-DB would cause a language flash on every page load. Pure-localStorage would lose the admin-configured value on first visit to a new device. |
 | `GET /auth/language` public (no JWT) | Same rationale as other operational endpoints — auth scope follows API auth scope decision above | All five views call this on startup before any login flow. Protecting it would require embedding a credential in the client JS or building unauthenticated token exchange — both worse than the exposure risk of returning a language code. |
-| Badge letters "C"/"O" not translated | Intentionally kept as English abbreviations | These are documented internal identifiers, not user-facing text. Translating them (e.g. "K" for Kaffee) would break the consistency between `/counter` and `/pickup`, which display the same badges, and could confuse staff who are trained on the current format. |
+| Badge letters "C"/"O" not translated | **Superseded by production feedback item 4.** `/pickup` now has its own `pickupLanguage` setting with translated letters (EN: C/O, DE: K/A, RO: C/A). `/counter` keeps C/O in all languages — it is staff-facing and changing it would confuse baristas trained on the current labels. The two screens are intentionally decoupled. |
 | QR generation: client-side, not server-side | `qr-code-styling` (DOM Canvas) instead of planned `qrcode` (Node PNG) | Client-side gives richer output (dot shapes, gradients, logo, live preview) with zero server involvement. The library's own `.download()` handles PNG export. Server-side generation would require a headless canvas or separate binary, adds complexity, and the result is a plain black-and-white QR with no styling options. |
 | QR base URL in AdminConfig | Stored in DB (`qrBaseUrl String @default("")`), not in env var | The URL is a runtime concern — it changes whenever the network changes, not when the app is deployed. Storing it in the DB lets the admin update it through the Settings UI without a redeploy or container restart. Empty string falls back to `window.location.origin`. |
 | `crypto.randomUUID` fallback | `newLineId()` in `orderStore.ts` feature-detects and falls back to `Math.random` UUID v4 | The app runs over plain HTTP on a local network IP, which is not a secure context. `crypto.randomUUID()` is undefined in non-secure contexts, crashing the add-to-cart flow on any device accessing via IP. The fallback is sufficient because `lineId` is client-only state, never stored in the DB. |

@@ -152,6 +152,7 @@ export default function BaristaView() {
           borderBottom: isLandscape ? 0 : 1,
           borderColor: 'divider',
         }}
+        data-testid="barista-pending"
       >
         <PanelHeader
           title={t('barista.pending')}
@@ -169,6 +170,7 @@ export default function BaristaView() {
           display: 'flex',
           flexDirection: 'column',
         }}
+        data-testid="barista-inprogress"
       >
         <PanelHeader title={t('barista.inProgress')} count={inProgress.length} />
         <OrderList orders={inProgress} emptyLabel={t('barista.noneInProgress')} onTap={doneOrder} />
@@ -254,6 +256,7 @@ function OrderCard({ order, onTap }: { order: Order; onTap: (orderId: string) =>
   return (
     <Card
       variant="outlined"
+      data-orderid={order.id}
       sx={{ borderColor, borderWidth: isUrgent ? 2 : 1 }}
     >
       <CardActionArea onClick={() => onTap(order.id)}>

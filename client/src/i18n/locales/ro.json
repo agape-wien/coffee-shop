@@ -164,6 +164,7 @@
       "submitButton": "Schimbați parola",
       "failedMessage": "Schimbarea parolei a eșuat",
       "language": "Limbă",
+      "pickupLanguage": "Limba ecranului de ridicare",
       "qrBaseUrl": "URL de bază pentru coduri QR",
       "qrBaseUrlHint": "URL-ul de bază folosit la generarea codurilor QR. Lăsați gol pentru a folosi adresa proprie a serverului. Introduceți IP-ul rețelei locale pentru ca telefoanele clienților să poată accesa pagina de comandă.",
       "qrBaseUrlSaved": "URL salvat",

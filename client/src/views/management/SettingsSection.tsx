@@ -33,6 +33,9 @@ export default function SettingsSection({ token }: { token: string }) {
   const [language, setLanguage] = useState(i18n.language.slice(0, 2))
   const [langSaving, setLangSaving] = useState(false)
   const [langError, setLangError] = useState('')
+  const [pickupLanguage, setPickupLanguage] = useState('en')
+  const [pickupLangSaving, setPickupLangSaving] = useState(false)
+  const [pickupLangError, setPickupLangError] = useState('')
   const [qrBaseUrl, setQrBaseUrl] = useState('')
   const [qrUrlSaving, setQrUrlSaving] = useState(false)
   const [qrUrlError, setQrUrlError] = useState('')
@@ -50,13 +53,18 @@ export default function SettingsSection({ token }: { token: string }) {
   const [compSaving, setCompSaving] = useState(false)
   const [imageSaving, setImageSaving] = useState(false)
 
-  // Fetch the current DB language on mount so the picker reflects the stored value,
-  // not just the browser's cached preference.
+  // Fetch both language settings on mount so the pickers reflect the stored values.
   useEffect(() => {
     fetch('/api/v1/auth/language')
       .then((r) => r.json())
       .then((json: { data?: { language: string } }) => {
         if (json.data?.language) setLanguage(json.data.language)
+      })
+      .catch(() => {})
+    fetch('/api/v1/auth/pickup-language')
+      .then((r) => r.json())
+      .then((json: { data?: { pickupLanguage: string } }) => {
+        if (json.data?.pickupLanguage) setPickupLanguage(json.data.pickupLanguage)
       })
       .catch(() => {})
   }, [])
@@ -119,6 +127,27 @@ export default function SettingsSection({ token }: { token: string }) {
       setLangError(t('common.serverError'))
     } finally {
       setLangSaving(false)
+    }
+  }
+
+  const savePickupLanguage = async (lang: string) => {
+    setPickupLangSaving(true)
+    setPickupLangError('')
+    try {
+      const res = await fetch('/api/v1/management/settings/pickup-language', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ language: lang }),
+      })
+      if (!res.ok) {
+        setPickupLangError(t('common.serverError'))
+        return
+      }
+      setPickupLanguage(lang)
+    } catch {
+      setPickupLangError(t('common.serverError'))
+    } finally {
+      setPickupLangSaving(false)
     }
   }
 
@@ -287,6 +316,29 @@ export default function SettingsSection({ token }: { token: string }) {
         </FormControl>
         {langSaving && <CircularProgress size={20} />}
         {langError && <Alert severity="error" sx={{ py: 0 }}>{langError}</Alert>}
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          {t('management.settings.pickupLanguage')}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, maxWidth: 400 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel>{t('management.settings.pickupLanguage')}</InputLabel>
+            <Select
+              value={pickupLanguage}
+              label={t('management.settings.pickupLanguage')}
+              onChange={(e) => void savePickupLanguage(e.target.value)}
+              disabled={pickupLangSaving}
+            >
+              {LANGUAGES.map((l) => (
+                <MenuItem key={l.code} value={l.code}>{l.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {pickupLangSaving && <CircularProgress size={20} />}
+          {pickupLangError && <Alert severity="error" sx={{ py: 0 }}>{pickupLangError}</Alert>}
+        </Box>
       </Box>
 
       <Divider sx={{ my: 3 }} />

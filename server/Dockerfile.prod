@@ -44,7 +44,7 @@ COPY client/package.json ./client/
 COPY packages/shared/package.json ./packages/shared/
 
 # Install production dependencies only. prisma CLI is in server/dependencies (not devDependencies)
-# so it is included here — it is required at container startup for `prisma db push`.
+# so it is included here — it is required at container startup for `prisma migrate deploy`.
 RUN npm install --omit=dev
 
 # Regenerate the Prisma client against the runtime platform (arm64 on a Pi, amd64 on x86).
@@ -62,5 +62,5 @@ RUN mkdir -p ./server/uploads/menu-images
 ENV NODE_ENV=production
 EXPOSE 3001
 
-# Apply any pending schema changes (idempotent when schema is unchanged), then start the server.
-CMD ["sh", "-c", "npx prisma db push --schema=./server/prisma/schema.prisma && node server/dist/index.js"]
+# Run pending migrations (idempotent when all migrations are already applied), then start the server.
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./server/prisma/schema.prisma && node server/dist/index.js"]

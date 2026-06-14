@@ -180,6 +180,7 @@ export default function CounterView() {
       </Box>
 
       <Box
+        data-testid="counter-pickup"
         sx={{
           flex: 1,
           minWidth: 0,
@@ -341,7 +342,7 @@ function PickupBadge({ badge, onPickup }: {
   onPickup: (orderId: string, part: 'coffee' | 'other') => void
 }) {
   return (
-    <Card variant="outlined" sx={{ minWidth: 140 }}>
+    <Card variant="outlined" data-orderid={badge.orderId} sx={{ minWidth: 140 }}>
       <CardActionArea onClick={() => onPickup(badge.orderId, badge.part)} sx={{ p: 2 }}>
         <Typography fontWeight="bold" sx={{ fontSize: '2rem', lineHeight: 1.2 }}>
           {badge.number} {badge.part === 'coffee' ? 'C' : 'O'}

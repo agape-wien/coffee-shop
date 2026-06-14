@@ -1,6 +1,10 @@
 // Customer-facing pickup display — the big screen people watch while waiting for their order.
 //
 // Shows one badge per DONE part: "42 C" (coffee ready) or "42 O" (other ready).
+// Badge letters vary by pickupLanguage (fetched from /api/v1/auth/pickup-language on mount),
+// which is configured independently of the general app language in Management → Settings.
+// EN: C / O — DE: K (Kaffee) / A (Andere) — RO: C (Cafea) / A (Altele)
+//
 // Parts are dismissed independently by the counter person from /counter; nothing here
 // is interactive. Sorted by order number ascending so customers can scan quickly.
 //
@@ -22,6 +26,16 @@ const fadeScaleIn = keyframes`
   to   { opacity: 1; transform: scale(1); }
 `
 
+// Badge letter lookup per pickup language. Kept here alongside the view that renders them.
+// EN: C/O — DE: K (Kaffee) / A (Andere) — RO: C (Cafea) / A (Altele)
+const BADGE_LETTERS: Record<string, { coffee: string; other: string }> = {
+  en: { coffee: 'C', other: 'O' },
+  de: { coffee: 'K', other: 'A' },
+  ro: { coffee: 'C', other: 'A' },
+}
+const DEFAULT_LETTERS = { coffee: 'C', other: 'O' }
+const getLetters = (lang: string): { coffee: string; other: string } => BADGE_LETTERS[lang] ?? DEFAULT_LETTERS
+
 interface DonePart {
   orderId: string
   number: number
@@ -38,6 +52,17 @@ function extractDoneParts(order: Order): DonePart[] {
 export default function PickupView() {
   const { t } = useTranslation()
   const [orders, setOrders] = useState<Order[]>([])
+  const [pickupLetters, setPickupLetters] = useState(DEFAULT_LETTERS)
+
+  // Fetch pickup-specific language to resolve badge letters. Independent of app language.
+  useEffect(() => {
+    fetch('/api/v1/auth/pickup-language')
+      .then((r) => r.json())
+      .then((json: { data?: { pickupLanguage: string } }) => {
+        if (json.data?.pickupLanguage) setPickupLetters(getLetters(json.data.pickupLanguage))
+      })
+      .catch(() => {})
+  }, [])
 
   // Hydrate from REST on mount — covers any DONE parts that existed before the page opened.
   useEffect(() => {
@@ -87,7 +112,7 @@ export default function PickupView() {
         flexWrap: 'wrap',
         alignContent: 'flex-start',
         gap: 3,
-        p: 4,
+        p: 3,
       }}
     >
       {doneParts.length === 0 ? (
@@ -102,15 +127,18 @@ export default function PickupView() {
               border: 2,
               borderColor: 'divider',
               borderRadius: 2,
-              px: 4,
-              py: 3,
-              minWidth: 180,
+              // Width is exactly 1/5 of screen. Formula: 5 cards + 6 equal gaps (left padding,
+              // 4 inter-card gaps, right padding). Gap and container padding both use MUI spacing
+              // 3 = 24 px so they match. Font scales proportionally via vw units.
+              width: 'calc((100vw - 6 * 24px) / 5)',
+              p: 2,
               textAlign: 'center',
               animation: `${fadeScaleIn} 0.35s ease-out`,
+              boxSizing: 'border-box',
             }}
           >
-            <Typography fontWeight="bold" sx={{ fontSize: '5rem', lineHeight: 1 }}>
-              {badge.number} {badge.part === 'coffee' ? 'C' : 'O'}
+            <Typography fontWeight="bold" sx={{ fontSize: '5vw', lineHeight: 1 }}>
+              {badge.number} {badge.part === 'coffee' ? pickupLetters.coffee : pickupLetters.other}
             </Typography>
           </Box>
         ))

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
-import { verifyAdminPassword, updateAdminPassword, getLanguage, getDarkMode, getMenuDisplay } from '../lib/adminConfig.js'
+import { verifyAdminPassword, updateAdminPassword, getLanguage, getPickupLanguage, getDarkMode, getMenuDisplay } from '../lib/adminConfig.js'
 
 const router = Router()
 
@@ -19,6 +19,12 @@ const ChangePasswordSchema = z.object({
 router.get('/language', async (_req, res) => {
   const language = await getLanguage()
   res.json({ data: { language } })
+})
+
+// Public — PickupView fetches this to determine badge letters independently of app language.
+router.get('/pickup-language', async (_req, res) => {
+  const pickupLanguage = await getPickupLanguage()
+  res.json({ data: { pickupLanguage } })
 })
 
 // Public — same rationale as /language: all views need this on startup before any login flow.

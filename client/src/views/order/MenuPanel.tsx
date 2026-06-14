@@ -48,7 +48,7 @@ export default function MenuPanel() {
   const category = snapshot.categories[selectedCat]
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box data-testid="menu-panel" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Tabs
         value={selectedCat}
         onChange={(_, v: number) => setSelectedCat(v)}

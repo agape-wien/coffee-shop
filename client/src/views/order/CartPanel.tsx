@@ -25,6 +25,10 @@ import Divider from '@mui/material/Divider'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import TextField from '@mui/material/TextField'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import Select from '@mui/material/Select'
@@ -146,7 +150,7 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
   const pendingCount = openOrders.length
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box data-testid="cart-panel" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Table selector — above tabs, visible in both modes */}
       <Box sx={{ px: 2, pt: 2, pb: 1, flexShrink: 0, bgcolor: 'background.paper', position: 'relative', zIndex: 1 }}>
         {isTokenMode && tableFromToken ? (
@@ -204,7 +208,7 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
                 (isNaN(parseInt(orderNumber, 10)) || parseInt(orderNumber, 10) < 1 || parseInt(orderNumber, 10) > 999)
               }
               disabled={numberLoading}
-              inputProps={{ min: 1, max: 999, step: 1, style: { fontSize: 'var(--fs-primary)', paddingLeft: 7, paddingRight: 7 } }}
+              inputProps={{ min: 1, max: 999, step: 1, 'data-testid': 'order-number-input', style: { fontSize: 'var(--fs-primary)', paddingLeft: 7, paddingRight: 7 } }}
               sx={{ width: 60 }}
             />
           </Box>
@@ -283,6 +287,7 @@ function CartView() {
         variant="contained"
         size="large"
         fullWidth
+        data-testid="place-order-btn"
         disabled={isEmpty || submitting || numberError}
         onClick={() => { void submit() }}
         sx={{ minHeight: 56, flexShrink: 0, fontSize: 'var(--fs-primary)' }}
@@ -301,52 +306,90 @@ interface CartLineItemProps {
   onNotes: (notes: string) => void
 }
 
-// Notes field is hidden until the item name is tapped — keeps the cart compact.
-// autoFocus mounts the field with the cursor ready to type. Blurring with an empty
-// field collapses it again.
+// Notes are edited in a modal dialog that opens above the on-screen keyboard on mobile.
+// The inline expand/collapse approach was replaced because the keyboard pushed the field
+// offscreen when it appeared. The dialog mounts above the keyboard regardless of scroll
+// position. A local draft state lets the user cancel without saving.
+// The cart line still shows any saved notes as a summary line so staff can see them at a glance.
 function CartLineItem({ line: l, onQuantity, onNotes }: CartLineItemProps) {
   const { t } = useTranslation()
-  const [showNotes, setShowNotes] = useState(l.notes !== '')
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  const openNotes = () => {
+    setDraft(l.notes)
+    setNotesOpen(true)
+  }
+
+  const saveNotes = () => {
+    onNotes(draft)
+    setNotesOpen(false)
+  }
 
   return (
-    <ListItem disableGutters sx={{ flexDirection: 'column', alignItems: 'stretch', pb: 1.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography
-          variant="h6"
-          onClick={() => setShowNotes(true)}
-          sx={{ fontSize: 'var(--fs-primary)', cursor: 'pointer' }}
-        >
-          {l.menuItem.name}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button
-            variant="outlined" size="small"
-            onClick={() => onQuantity(l.quantity - 1)}
-            sx={{ minWidth: 48, minHeight: 48, px: 0 }}
-          ><RemoveIcon /></Button>
-          <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 'bold', fontSize: 'var(--fs-primary)' }}>
-            {l.quantity}
+    <>
+      <ListItem data-testid="cart-line" disableGutters sx={{ flexDirection: 'column', alignItems: 'stretch', pb: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography
+            variant="h6"
+            onClick={openNotes}
+            sx={{ fontSize: 'var(--fs-primary)', cursor: 'pointer' }}
+          >
+            {l.menuItem.name}
           </Typography>
-          <Button
-            variant="outlined" size="small"
-            onClick={() => onQuantity(l.quantity + 1)}
-            sx={{ minWidth: 48, minHeight: 48, px: 0 }}
-          ><AddIcon /></Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button
+              variant="outlined" size="small"
+              onClick={() => onQuantity(l.quantity - 1)}
+              sx={{ minWidth: 48, minHeight: 48, px: 0 }}
+            ><RemoveIcon /></Button>
+            <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 'bold', fontSize: 'var(--fs-primary)' }}>
+              {l.quantity}
+            </Typography>
+            <Button
+              variant="outlined" size="small"
+              onClick={() => onQuantity(l.quantity + 1)}
+              sx={{ minWidth: 48, minHeight: 48, px: 0 }}
+            ><AddIcon /></Button>
+          </Box>
         </Box>
-      </Box>
-      {showNotes && (
-        <TextField
-          autoFocus
-          size="small"
-          placeholder={t('order.notesPlaceholder')}
-          value={l.notes}
-          onChange={(e) => onNotes(e.target.value)}
-          onBlur={() => { if (l.notes === '') setShowNotes(false) }}
-          inputProps={{ maxLength: 200, style: { fontSize: 'var(--fs-secondary)' } }}
-          sx={{ mt: 0.5 }}
-        />
-      )}
-    </ListItem>
+        {l.notes && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            onClick={openNotes}
+            sx={{ fontSize: 'var(--fs-small)', mt: 0.25, cursor: 'pointer' }}
+          >
+            {l.notes}
+          </Typography>
+        )}
+      </ListItem>
+
+      <Dialog open={notesOpen} onClose={() => setNotesOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontSize: 'var(--fs-primary)', pb: 1 }}>{l.menuItem.name}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            rows={3}
+            placeholder={t('order.notesPlaceholder')}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            inputProps={{ maxLength: 200, style: { fontSize: 'var(--fs-secondary)' } }}
+            sx={{ mt: 0.5 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNotesOpen(false)} sx={{ fontSize: 'var(--fs-secondary)' }}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="contained" onClick={saveNotes} sx={{ fontSize: 'var(--fs-secondary)' }}>
+            {t('common.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 
@@ -380,7 +423,7 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
     <Box sx={{ overflowY: 'auto', height: '100%' }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
       {orders.map((order) => (
-        <Card key={order.id} variant="outlined">
+        <Card key={order.id} data-testid="open-order-card" data-orderid={order.id} variant="outlined">
           <CardContent sx={{ pb: '12px !important' }}>
             {/* Header: order number (bar only) or just order indicator */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

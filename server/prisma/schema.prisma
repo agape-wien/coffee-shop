@@ -19,6 +19,9 @@ model AdminConfig {
   id              String  @id @default("singleton")
   passwordHash    String
   language        String  @default("en")
+  // pickupLanguage controls badge letters on /pickup independently of the general app language.
+  // "C"/"O" (en), "K"/"A" (de), "C"/"A" (ro) — see BADGE_LETTERS in PickupView.tsx.
+  pickupLanguage  String  @default("en")
   qrBaseUrl       String  @default("")
   darkMode        Boolean @default(false)
   showDescription Boolean @default(true)

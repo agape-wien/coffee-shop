@@ -162,6 +162,7 @@
       "submitButton": "Passwort ändern",
       "failedMessage": "Passwort konnte nicht geändert werden",
       "language": "Sprache",
+      "pickupLanguage": "Anzeigesprache Ausgabe",
       "qrBaseUrl": "QR-Code Basis-URL",
       "qrBaseUrlHint": "Die Basis-URL für die QR-Code-Generierung. Leer lassen, um die eigene Serveradresse zu verwenden. Lokale Netzwerk-IP eintragen, damit Kundengräte die Bestellseite erreichen.",
       "qrBaseUrlSaved": "URL gespeichert",
