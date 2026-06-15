@@ -41,7 +41,7 @@ Tasks:
 
 Tasks:
 - [x] `server/prisma/schema.prisma` — all models (Category, MenuItem, Table, Order, OrderItem, DailyCounter)
-- [ ] Initial migration: `prisma migrate dev` (currently using `prisma db push` — migrate before schema stabilises)
+- [x] Initial migration: baseline created via `prisma migrate diff --from-empty`, marked applied via `prisma migrate resolve`; prod Dockerfile updated to `prisma migrate deploy`
 - [x] `server/prisma/seed.ts` — 2 categories, 7 coffee + 5 other items, 5 tables; production guard; `npm run db:seed --workspace=server`
 - [x] Prisma client singleton — `server/src/lib/prisma.ts`
 - [x] `DailyCounter` model for order numbers

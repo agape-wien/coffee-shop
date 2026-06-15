@@ -7,9 +7,39 @@
 
 ## Current status
 
-**Phase:** Phase 11 complete — all planned features done  
-**Last updated:** 2026-06-14  
-**Active work:** Production feedback items 1–5 completed this session.
+**Phase:** Production feedback — items 1–5 done, items 6–12 queued  
+**Last updated:** 2026-06-15  
+**Active work:** Nothing in progress — session closed cleanly.
+
+---
+
+## Next up
+
+Work through the remaining production feedback items in order. Each is independent; no blockers between them.
+
+1. **Item 6 — Collapsible order summary** (`client/src/views/management/OrdersSection.tsx`)
+   Add a "Summary" header row with a chevron. Collapse by default. The three scalar cards and the per-item breakdown card stay as-is inside.
+
+2. **Item 7 — Time granularity in order filter** (`client/src/views/management/OrdersSection.tsx`)
+   Add time inputs alongside the existing date pickers. Backend already accepts ISO datetime strings — this is a UI-only change.
+
+3. **Item 8 — Bulk delete orders** (`client/src/views/management/OrdersSection.tsx` + new `DELETE /api/v1/management/orders` endpoint)
+   Checkbox per row, select-all (filtered rows only), Delete button in toolbar (disabled until selection), confirmation modal with count, hard delete from DB.
+
+4. **Item 9 — Font sizes configurable from Management UI**
+   Move `--fs-primary/secondary/small` from hardcoded CSS into `AdminConfig` (three integer columns, px). Expose via `GET /api/v1/auth/menu-display` (or a new config endpoint). Apply at runtime via `document.documentElement.style.setProperty`. Add a "Font sizes" section in Settings.
+   Default values: 36px / 29px / 24px (the current 2.25 / 1.8 / 1.5rem values assuming 16px base).
+
+5. **Item 11 — Table label on counter pickup badges** (`client/src/views/CounterView.tsx`)
+   For non-bar orders, append table label to the badge: `42 C · Table 4`. Requires threading `tableId` / `tableLabel` through to the `DonePart` interface. Bar orders unchanged. `/pickup` screen excluded.
+
+6. **Item 12 — Ready indicator on Open tab** (`client/src/views/order/CartPanel.tsx`)
+   Coloured dot or badge on the Open tab when any open order for the current table has a DONE part. Clears when all DONE parts are delivered. The existing `order:updated` subscription already drives the state — no new socket work needed.
+
+7. **Item 10 — Per-device settings** (new `DeviceConfig` DB table + `PUT /api/v1/device-config/:deviceId`)
+   Depends on item 9 (font sizes in DB). UUID in localStorage identifies device. Settings modal (top-left button on every view) for font size, language, dark mode. Device values win over AdminConfig global defaults. Pickup language excluded from per-device override.
+
+---
 
 ---
 
