@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from './stores/themeStore.js'
 import { useMenuDisplayStore } from './stores/menuDisplayStore.js'
+import { useFontSizeStore } from './stores/fontSizeStore.js'
 import OrderView from './views/OrderView.js'
 import BaristaView from './views/BaristaView.js'
 import CounterView from './views/CounterView.js'
@@ -48,23 +49,25 @@ function ThemeSync() {
   return null
 }
 
-// Fetches the shop-wide menu display flags from the DB on startup and syncs the store.
+// Fetches the shop-wide menu display flags and font sizes from the DB on startup.
 // localStorage provides the fast initial value (no flash); this overrides with the
-// authoritative DB value so all ordering screens stay in sync with admin settings.
+// authoritative DB value so all screens stay in sync with admin settings.
 function MenuDisplaySync() {
   const setShowDescription = useMenuDisplayStore((s) => s.setShowDescription)
   const setShowComposition = useMenuDisplayStore((s) => s.setShowComposition)
   const setShowImage = useMenuDisplayStore((s) => s.setShowImage)
+  const setFontSizes = useFontSizeStore((s) => s.setFontSizes)
   useEffect(() => {
     fetch('/api/v1/auth/menu-display')
       .then((r) => r.json())
-      .then((json: { data?: { showDescription: boolean; showComposition: boolean; showImage: boolean } }) => {
+      .then((json: { data?: { showDescription: boolean; showComposition: boolean; showImage: boolean; fsPrimary: number; fsSecondary: number; fsSmall: number } }) => {
         if (typeof json.data?.showDescription === 'boolean') setShowDescription(json.data.showDescription)
         if (typeof json.data?.showComposition === 'boolean') setShowComposition(json.data.showComposition)
         if (typeof json.data?.showImage === 'boolean') setShowImage(json.data.showImage)
+        if (typeof json.data?.fsPrimary === 'number') setFontSizes(json.data.fsPrimary, json.data.fsSecondary, json.data.fsSmall)
       })
       .catch(() => {})
-  }, [setShowDescription, setShowComposition, setShowImage])
+  }, [setShowDescription, setShowComposition, setShowImage, setFontSizes])
   return null
 }
 

@@ -15,6 +15,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useThemeStore } from '../../stores/themeStore.js'
 import { useMenuDisplayStore } from '../../stores/menuDisplayStore.js'
+import { useFontSizeStore } from '../../stores/fontSizeStore.js'
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -52,6 +53,13 @@ export default function SettingsSection({ token }: { token: string }) {
   const [descSaving, setDescSaving] = useState(false)
   const [compSaving, setCompSaving] = useState(false)
   const [imageSaving, setImageSaving] = useState(false)
+  const { fsPrimary, fsSecondary, fsSmall, setFontSizes } = useFontSizeStore()
+  const [fsPrimaryInput, setFsPrimaryInput] = useState(String(fsPrimary))
+  const [fsSecondaryInput, setFsSecondaryInput] = useState(String(fsSecondary))
+  const [fsSmallInput, setFsSmallInput] = useState(String(fsSmall))
+  const [fontSaving, setFontSaving] = useState(false)
+  const [fontSaved, setFontSaved] = useState(false)
+  const [fontError, setFontError] = useState('')
 
   // Fetch both language settings on mount so the pickers reflect the stored values.
   useEffect(() => {
@@ -212,6 +220,37 @@ export default function SettingsSection({ token }: { token: string }) {
       // Best-effort: local state already updated, DB sync is fire-and-forget
     } finally {
       setImageSaving(false)
+    }
+  }
+
+  const saveFontSizes = async () => {
+    const primary = parseInt(fsPrimaryInput, 10)
+    const secondary = parseInt(fsSecondaryInput, 10)
+    const small = parseInt(fsSmallInput, 10)
+    if ([primary, secondary, small].some((v) => isNaN(v) || v < 8 || v > 120)) {
+      setFontError(t('management.settings.fontSizeInvalid'))
+      return
+    }
+    setFontSaving(true)
+    setFontError('')
+    setFontSaved(false)
+    try {
+      const res = await fetch('/api/v1/management/settings/font-sizes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fsPrimary: primary, fsSecondary: secondary, fsSmall: small }),
+      })
+      if (!res.ok) {
+        const json = await res.json() as { error?: string }
+        setFontError(json.error ?? t('common.serverError'))
+        return
+      }
+      setFontSizes(primary, secondary, small)
+      setFontSaved(true)
+    } catch {
+      setFontError(t('common.serverError'))
+    } finally {
+      setFontSaving(false)
     }
   }
 
@@ -437,6 +476,52 @@ export default function SettingsSection({ token }: { token: string }) {
           {imageSaving && <CircularProgress size={18} />}
         </Box>
       </Box>
+
+      <Divider sx={{ my: 3 }} />
+
+      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+        {t('management.settings.fontSizes')}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end', maxWidth: 480 }}>
+        <TextField
+          label={t('management.settings.fontSizePrimary')}
+          type="number"
+          size="small"
+          value={fsPrimaryInput}
+          onChange={(e) => { setFsPrimaryInput(e.target.value); setFontSaved(false); setFontError('') }}
+          inputProps={{ min: 8, max: 120 }}
+          sx={{ width: 140 }}
+        />
+        <TextField
+          label={t('management.settings.fontSizeSecondary')}
+          type="number"
+          size="small"
+          value={fsSecondaryInput}
+          onChange={(e) => { setFsSecondaryInput(e.target.value); setFontSaved(false); setFontError('') }}
+          inputProps={{ min: 8, max: 120 }}
+          sx={{ width: 140 }}
+        />
+        <TextField
+          label={t('management.settings.fontSizeSmall')}
+          type="number"
+          size="small"
+          value={fsSmallInput}
+          onChange={(e) => { setFsSmallInput(e.target.value); setFontSaved(false); setFontError('') }}
+          inputProps={{ min: 8, max: 120 }}
+          sx={{ width: 140 }}
+        />
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => void saveFontSizes()}
+          disabled={fontSaving}
+          sx={{ mb: 0.125 }}
+        >
+          {fontSaving ? <CircularProgress size={18} color="inherit" /> : t('common.save')}
+        </Button>
+      </Box>
+      {fontError && <Alert severity="error" sx={{ mt: 1.5, maxWidth: 480 }}>{fontError}</Alert>}
+      {fontSaved && <Alert severity="success" sx={{ mt: 1.5, maxWidth: 480 }}>{t('management.settings.fontSizesSaved')}</Alert>}
     </Box>
   )
 }

@@ -19,7 +19,7 @@ import type { Server as IoServer } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents, MenuSnapshot } from '@coffee/shared'
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
-import { setLanguage, setPickupLanguage, getQrBaseUrl, setQrBaseUrl, setDarkMode, setShowDescription, setShowComposition, setShowImage } from '../lib/adminConfig.js'
+import { setLanguage, setPickupLanguage, getQrBaseUrl, setQrBaseUrl, setDarkMode, setShowDescription, setShowComposition, setShowImage, setFontSizes } from '../lib/adminConfig.js'
 
 const CategoryCreateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -59,6 +59,10 @@ const OrderFilterSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   tableId: z.string().optional(),
+})
+
+const BulkDeleteOrdersSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
 })
 
 // Multer setup for menu image uploads. Files are stored under server/uploads/menu-images/
@@ -360,7 +364,9 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
 
   // ─── Orders ───────────────────────────────────────────────────────────────────
 
-  // Supports optional filters: ?from=YYYY-MM-DD &to=YYYY-MM-DD &tableId=X
+  // Supports optional filters: ?from=&to=&tableId=X
+  // from/to can be date strings (YYYY-MM-DD) or full ISO datetime strings.
+  // Date-only strings get midnight/end-of-day suffixes appended; datetime strings are used as-is.
   // Defaults to the current UTC date if no filter is provided. Returns up to 200 orders.
   router.get('/orders', async (req, res) => {
     const result = OrderFilterSchema.safeParse(req.query)
@@ -370,8 +376,10 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
     const { from, to, tableId } = result.data
     const today = new Date().toISOString().slice(0, 10)
-    const fromDate = new Date((from ?? today) + 'T00:00:00.000Z')
-    const toDate = new Date((to ?? from ?? today) + 'T23:59:59.999Z')
+    const fromStr = from ?? today
+    const toStr = to ?? from ?? today
+    const fromDate = new Date(fromStr.includes('T') ? fromStr : fromStr + 'T00:00:00.000Z')
+    const toDate = new Date(toStr.includes('T') ? toStr : toStr + 'T23:59:59.999Z')
     try {
       const orders = await prisma.order.findMany({
         where: {
@@ -405,6 +413,22 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
         return
       }
       res.json({ data: order })
+    } catch {
+      res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
+    }
+  })
+
+  // Hard-deletes the supplied orders. Does not adjust the daily counter — issued order
+  // numbers are never reused regardless of whether the order record is deleted.
+  router.delete('/orders', async (req, res) => {
+    const result = BulkDeleteOrdersSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: 'ids must be a non-empty array of up to 200 strings', code: 'VALIDATION_ERROR' })
+      return
+    }
+    try {
+      await prisma.order.deleteMany({ where: { id: { in: result.data.ids } } })
+      res.json({ data: { deleted: result.data.ids.length } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
     }
@@ -541,6 +565,28 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
     try {
       await setShowImage(result.data.showImage)
+      res.json({ data: { ok: true } })
+    } catch {
+      res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
+    }
+  })
+
+  const FontSizesSchema = z.object({
+    fsPrimary: z.number().int().min(8).max(120),
+    fsSecondary: z.number().int().min(8).max(120),
+    fsSmall: z.number().int().min(8).max(120),
+  })
+
+  // Saves all three font sizes in one write to avoid partial-update states.
+  router.put('/settings/font-sizes', async (req, res) => {
+    const result = FontSizesSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: 'Each font size must be an integer between 8 and 120 (px)', code: 'VALIDATION_ERROR' })
+      return
+    }
+    try {
+      const { fsPrimary, fsSecondary, fsSmall } = result.data
+      await setFontSizes(fsPrimary, fsSecondary, fsSmall)
       res.json({ data: { ok: true } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })

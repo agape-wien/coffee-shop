@@ -136,9 +136,12 @@
     "orders": {
       "title": "Bestellungen",
       "from": "Von",
+      "fromTime": "Von Uhrzeit",
       "to": "Bis",
+      "toTime": "Bis Uhrzeit",
       "refresh": "Aktualisieren",
       "noOrders": "Keine Bestellungen für diesen Zeitraum gefunden.",
+      "summary": "Zusammenfassung",
       "statOrders": "Bestellungen",
       "statCoffeeEq": "Kaffeeäquivalent",
       "statMilk": "Milch",
@@ -148,7 +151,11 @@
       "colItem": "Artikel",
       "colQty": "Menge",
       "colCoffeeEq": "Kaffeeäq.",
-      "colMilk": "Milch"
+      "colMilk": "Milch",
+      "selectAll": "Alle auswählen",
+      "deleteSelected": "Löschen ({{count}})",
+      "deleteTitle": "Bestellungen löschen",
+      "deleteConfirmMessage": "{{count}} Bestellungen dauerhaft löschen? Dies kann nicht rückgängig gemacht werden."
     },
     "settings": {
       "title": "Einstellungen",
@@ -172,7 +179,13 @@
       "menuDisplay": "Menüelement-Anzeige",
       "showDescription": "Beschreibung anzeigen",
       "showComposition": "Zusammensetzung anzeigen",
-      "showImage": "Bild anzeigen"
+      "showImage": "Bild anzeigen",
+      "fontSizes": "Schriftgrößen",
+      "fontSizePrimary": "Primär (px)",
+      "fontSizeSecondary": "Sekundär (px)",
+      "fontSizeSmall": "Klein (px)",
+      "fontSizesSaved": "Schriftgrößen gespeichert",
+      "fontSizeInvalid": "Jeder Wert muss eine ganze Zahl zwischen 8 und 120 sein"
     }
   }
 }

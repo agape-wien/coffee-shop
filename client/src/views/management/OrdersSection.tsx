@@ -1,12 +1,20 @@
-// Order history — filterable by date range and table.
-// Defaults to today. Each row is expandable to show item detail.
-// Summary cards above the list show totals for non-cancelled orders only.
+// Order history — filterable by date+time range.
+// Defaults to today 00:00–23:59 UTC. Each row is expandable to show item detail.
+// Summary cards (collapsible, closed by default) show totals for non-cancelled orders only.
+// Rows can be multi-selected for bulk hard-delete.
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Collapse from '@mui/material/Collapse'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
+import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
 import Paper from '@mui/material/Paper'
@@ -14,6 +22,8 @@ import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import CoffeeIcon from '@mui/icons-material/Coffee'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FastfoodIcon from '@mui/icons-material/Fastfood'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { apiFetch } from './apiHelper.js'
@@ -174,15 +184,24 @@ function SummaryCards({ summary }: { summary: Summary }) {
 export default function OrdersSection({ token }: { token: string }) {
   const { t } = useTranslation()
   const today = todayString()
-  const [from, setFrom] = useState(today)
-  const [to, setTo] = useState(today)
+  const [fromDate, setFromDate] = useState(today)
+  const [fromTime, setFromTime] = useState('00:00')
+  const [toDate, setToDate] = useState(today)
+  const [toTime, setToTime] = useState('23:59')
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setSelected([])
     try {
+      const from = `${fromDate}T${fromTime}:00.000Z`
+      const to = `${toDate}T${toTime}:59.999Z`
       const params = new URLSearchParams({ from, to })
       const res = await apiFetch(token, `/api/v1/management/orders?${params}`)
       const json = await res.json() as { data?: OrderRow[] }
@@ -190,7 +209,7 @@ export default function OrdersSection({ token }: { token: string }) {
     } finally {
       setLoading(false)
     }
-  }, [token, from, to])
+  }, [token, fromDate, fromTime, toDate, toTime])
 
   useEffect(() => { void load() }, [load])
 
@@ -202,21 +221,60 @@ export default function OrdersSection({ token }: { token: string }) {
       : t('common.table', { number: tbl.number })
   }
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const allSelected = orders.length > 0 && selected.length === orders.length
+  const someSelected = selected.length > 0 && selected.length < orders.length
+
+  const toggleAll = () => {
+    setSelected(allSelected ? [] : orders.map((o) => o.id))
+  }
+
+  const confirmDelete = async () => {
+    setDeleting(true)
+    try {
+      await apiFetch(token, '/api/v1/management/orders', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids: selected }),
+      })
+      setDeleteOpen(false)
+      setSelected([])
+      void load()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const summary = computeSummary(orders)
 
   return (
     <Box>
+      {/* Toolbar: date+time filter, refresh, bulk-delete */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6" sx={{ mr: 1 }}>{t('management.orders.title')}</Typography>
         <TextField
-          label={t('management.orders.from')} type="date" size="small" value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          label={t('management.orders.from')} type="date" size="small" value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
         <TextField
-          label={t('management.orders.to')} type="date" size="small" value={to}
-          onChange={(e) => setTo(e.target.value)}
+          label={t('management.orders.fromTime')} type="time" size="small" value={fromTime}
+          onChange={(e) => setFromTime(e.target.value)}
+          InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
+        />
+        <TextField
+          label={t('management.orders.to')} type="date" size="small" value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
+        />
+        <TextField
+          label={t('management.orders.toTime')} type="time" size="small" value={toTime}
+          onChange={(e) => setToTime(e.target.value)}
+          InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
         />
         <Tooltip title={t('management.orders.refresh')}>
           <span>
@@ -225,6 +283,17 @@ export default function OrdersSection({ token }: { token: string }) {
             </IconButton>
           </span>
         </Tooltip>
+        {selected.length > 0 && (
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={<DeleteForeverIcon />}
+            onClick={() => setDeleteOpen(true)}
+          >
+            {t('management.orders.deleteSelected', { count: selected.length })}
+          </Button>
+        )}
         {loading && <CircularProgress size={20} />}
       </Box>
 
@@ -234,18 +303,75 @@ export default function OrdersSection({ token }: { token: string }) {
         </Typography>
       ) : (
         <>
-          {!loading && <SummaryCards summary={summary} />}
+          {!loading && (
+            <>
+              {/* Collapsible summary header — closed by default */}
+              <Box
+                onClick={() => setSummaryOpen((v) => !v)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  mb: 1,
+                  px: 0.5,
+                  userSelect: 'none',
+                  '&:hover': { color: 'primary.main' },
+                }}
+              >
+                <ExpandMoreIcon
+                  sx={{
+                    mr: 0.5,
+                    transition: 'transform 0.2s',
+                    transform: summaryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }}
+                />
+                <Typography variant="subtitle2">{t('management.orders.summary')}</Typography>
+              </Box>
+              <Collapse in={summaryOpen}>
+                <SummaryCards summary={summary} />
+              </Collapse>
+            </>
+          )}
+
+          {/* Select-all row */}
+          {orders.length > 0 && !loading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, pl: 0.5 }}>
+              <Checkbox
+                size="small"
+                checked={allSelected}
+                indeterminate={someSelected}
+                onChange={toggleAll}
+                sx={{ p: 0.5 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {t('management.orders.selectAll')}
+              </Typography>
+            </Box>
+          )}
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {orders.map((order) => (
               <Box
                 key={order.id}
-                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}
+                sx={{
+                  border: 1,
+                  borderColor: selected.includes(order.id) ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                }}
               >
                 <Box
                   onClick={() => setExpanded(expanded === order.id ? null : order.id)}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                 >
+                  {/* Checkbox click is stopped from bubbling so it doesn't toggle expansion */}
+                  <Checkbox
+                    size="small"
+                    checked={selected.includes(order.id)}
+                    onChange={() => toggleSelect(order.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{ p: 0.5 }}
+                  />
                   <Typography fontWeight="bold" sx={{ minWidth: 40 }}>#{order.number}</Typography>
                   <Typography variant="body2" sx={{ flex: 1 }}>{tableLabel(order)}</Typography>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -276,6 +402,24 @@ export default function OrdersSection({ token }: { token: string }) {
           </Box>
         </>
       )}
+
+      {/* Bulk-delete confirmation dialog */}
+      <Dialog open={deleteOpen} onClose={() => { if (!deleting) setDeleteOpen(false) }}>
+        <DialogTitle>{t('management.orders.deleteTitle')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('management.orders.deleteConfirmMessage', { count: selected.length })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={() => void confirmDelete()} color="error" disabled={deleting} variant="contained">
+            {deleting ? <CircularProgress size={18} color="inherit" /> : t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

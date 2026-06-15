@@ -65,12 +65,22 @@ export async function setQrBaseUrl(qrBaseUrl: string): Promise<void> {
   await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { qrBaseUrl } })
 }
 
-export async function getMenuDisplay(): Promise<{ showDescription: boolean; showComposition: boolean; showImage: boolean }> {
+export async function getMenuDisplay(): Promise<{
+  showDescription: boolean
+  showComposition: boolean
+  showImage: boolean
+  fsPrimary: number
+  fsSecondary: number
+  fsSmall: number
+}> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
   return {
     showDescription: config?.showDescription ?? true,
     showComposition: config?.showComposition ?? true,
     showImage: config?.showImage ?? true,
+    fsPrimary: config?.fsPrimary ?? 36,
+    fsSecondary: config?.fsSecondary ?? 29,
+    fsSmall: config?.fsSmall ?? 24,
   }
 }
 
@@ -84,4 +94,8 @@ export async function setShowComposition(showComposition: boolean): Promise<void
 
 export async function setShowImage(showImage: boolean): Promise<void> {
   await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { showImage } })
+}
+
+export async function setFontSizes(fsPrimary: number, fsSecondary: number, fsSmall: number): Promise<void> {
+  await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { fsPrimary, fsSecondary, fsSmall } })
 }

@@ -7,7 +7,7 @@
 
 ## Current status
 
-**Phase:** Production feedback — items 1–5 done, items 6–12 queued  
+**Phase:** Production feedback — items 1–9 done, items 10–12 queued  
 **Last updated:** 2026-06-15  
 **Active work:** Nothing in progress — session closed cleanly.
 
@@ -17,20 +17,7 @@
 
 Work through the remaining production feedback items in order. Each is independent; no blockers between them.
 
-1. **Item 6 — Collapsible order summary** (`client/src/views/management/OrdersSection.tsx`)
-   Add a "Summary" header row with a chevron. Collapse by default. The three scalar cards and the per-item breakdown card stay as-is inside.
-
-2. **Item 7 — Time granularity in order filter** (`client/src/views/management/OrdersSection.tsx`)
-   Add time inputs alongside the existing date pickers. Backend already accepts ISO datetime strings — this is a UI-only change.
-
-3. **Item 8 — Bulk delete orders** (`client/src/views/management/OrdersSection.tsx` + new `DELETE /api/v1/management/orders` endpoint)
-   Checkbox per row, select-all (filtered rows only), Delete button in toolbar (disabled until selection), confirmation modal with count, hard delete from DB.
-
-4. **Item 9 — Font sizes configurable from Management UI**
-   Move `--fs-primary/secondary/small` from hardcoded CSS into `AdminConfig` (three integer columns, px). Expose via `GET /api/v1/auth/menu-display` (or a new config endpoint). Apply at runtime via `document.documentElement.style.setProperty`. Add a "Font sizes" section in Settings.
-   Default values: 36px / 29px / 24px (the current 2.25 / 1.8 / 1.5rem values assuming 16px base).
-
-5. **Item 11 — Table label on counter pickup badges** (`client/src/views/CounterView.tsx`)
+1. **Item 11 — Table label on counter pickup badges** (`client/src/views/CounterView.tsx`)
    For non-bar orders, append table label to the badge: `42 C · Table 4`. Requires threading `tableId` / `tableLabel` through to the `DonePart` interface. Bar orders unchanged. `/pickup` screen excluded.
 
 6. **Item 12 — Ready indicator on Open tab** (`client/src/views/order/CartPanel.tsx`)

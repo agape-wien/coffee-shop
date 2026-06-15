@@ -27,6 +27,12 @@ model AdminConfig {
   showDescription Boolean @default(true)
   showComposition Boolean @default(true)
   showImage       Boolean @default(true)
+  // Font sizes in px for the three CSS custom properties (--fs-primary, --fs-secondary, --fs-small).
+  // Applied at runtime via document.documentElement.style.setProperty on all views.
+  // Defaults match the current hardcoded CSS values (2.25rem / 1.8rem / 1.5rem @ 16px base).
+  fsPrimary       Int     @default(36)
+  fsSecondary     Int     @default(29)
+  fsSmall         Int     @default(24)
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────

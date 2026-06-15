@@ -136,9 +136,12 @@
     "orders": {
       "title": "Orders",
       "from": "From",
+      "fromTime": "From time",
       "to": "To",
+      "toTime": "To time",
       "refresh": "Refresh",
       "noOrders": "No orders found for this date range.",
+      "summary": "Summary",
       "statOrders": "Orders",
       "statCoffeeEq": "Coffee equivalent",
       "statMilk": "Milk",
@@ -148,7 +151,11 @@
       "colItem": "Item",
       "colQty": "Qty",
       "colCoffeeEq": "Coffee eq.",
-      "colMilk": "Milk"
+      "colMilk": "Milk",
+      "selectAll": "Select all",
+      "deleteSelected": "Delete ({{count}})",
+      "deleteTitle": "Delete orders",
+      "deleteConfirmMessage": "Permanently delete {{count}} orders? This cannot be undone."
     },
     "settings": {
       "title": "Settings",
@@ -172,7 +179,13 @@
       "menuDisplay": "Menu item display",
       "showDescription": "Show item description",
       "showComposition": "Show item composition",
-      "showImage": "Show item image"
+      "showImage": "Show item image",
+      "fontSizes": "Font sizes",
+      "fontSizePrimary": "Primary (px)",
+      "fontSizeSecondary": "Secondary (px)",
+      "fontSizeSmall": "Small (px)",
+      "fontSizesSaved": "Font sizes saved",
+      "fontSizeInvalid": "Each value must be an integer between 8 and 120"
     }
   }
 }

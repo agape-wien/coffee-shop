@@ -138,9 +138,12 @@
     "orders": {
       "title": "Comenzi",
       "from": "De la",
+      "fromTime": "De la ora",
       "to": "Până la",
+      "toTime": "Până la ora",
       "refresh": "Actualizare",
       "noOrders": "Nicio comandă găsită pentru această perioadă.",
+      "summary": "Rezumat",
       "statOrders": "Comenzi",
       "statCoffeeEq": "Echivalent cafea",
       "statMilk": "Lapte",
@@ -150,7 +153,11 @@
       "colItem": "Produs",
       "colQty": "Cantitate",
       "colCoffeeEq": "Ec. cafea",
-      "colMilk": "Lapte"
+      "colMilk": "Lapte",
+      "selectAll": "Selectați toate",
+      "deleteSelected": "Ștergeți ({{count}})",
+      "deleteTitle": "Ștergeți comenzi",
+      "deleteConfirmMessage": "Ștergeți permanent {{count}} comenzi? Această acțiune nu poate fi anulată."
     },
     "settings": {
       "title": "Setări",
@@ -174,7 +181,13 @@
       "menuDisplay": "Afișare produse meniu",
       "showDescription": "Afișați descrierea produsului",
       "showComposition": "Afișați compoziția produsului",
-      "showImage": "Afișați imaginea produsului"
+      "showImage": "Afișați imaginea produsului",
+      "fontSizes": "Dimensiuni font",
+      "fontSizePrimary": "Primar (px)",
+      "fontSizeSecondary": "Secundar (px)",
+      "fontSizeSmall": "Mic (px)",
+      "fontSizesSaved": "Dimensiuni font salvate",
+      "fontSizeInvalid": "Fiecare valoare trebuie să fie un număr întreg între 8 și 120"
     }
   }
 }
