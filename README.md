@@ -117,7 +117,7 @@ Tell SSH to use it for GitHub:
 ```bash
 cat >> ~/.ssh/config <<EOF
 Host github.com
-  IdentityFile ~/.ssh/id_ed25519_aonisor
+  IdentityFile /home/agapewien/.ssh/id_ed25519_aonisor
   User git
 EOF
 chmod 600 ~/.ssh/config
@@ -127,8 +127,9 @@ ssh -T git@github.com   # should respond: "Hi ... You've successfully authentica
 ### 2. Clone and run setup
 
 ```bash
-sudo git clone <repo-url> /opt/coffee-shop
+sudo mkdir /opt/coffee-shop
 sudo chown -R agapewien:agapewien /opt/coffee-shop
+sudo -u agapewien git clone <repo-url> /opt/coffee-shop
 cd /opt/coffee-shop
 sudo bash setup.sh
 ```
@@ -173,14 +174,51 @@ Pulls latest code, rebuilds the image, restarts containers. Docker layer caching
 # View live server logs
 docker compose -f docker-compose.prod.yaml logs -f server
 
+# Check status of all containers
+docker compose -f docker-compose.prod.yaml ps
+
 # Restart containers without rebuilding
 docker compose -f docker-compose.prod.yaml restart
 
-# Stop everything
+# Stop everything (data preserved)
 docker compose -f docker-compose.prod.yaml down
+
+# Stop everything AND wipe the database volume (use when migrations fail on a fresh install)
+docker compose -f docker-compose.prod.yaml down -v
 
 # Check the auto-start service
 systemctl status startupscript.service
+
+# View auto-start service logs (useful when boot pull fails)
+journalctl -u startupscript.service --no-pager -n 50
+
+# Shut down the Pi cleanly — always do this before unplugging power
+sudo shutdown -h now
+```
+
+### Recovering from a corrupted git repository
+
+Caused by unplugging power during a `git pull`. Back up `.env` first, then do a fresh clone:
+
+```bash
+cp /opt/coffee-shop/.env ~/coffee-shop.env.backup
+sudo rm -rf /opt/coffee-shop
+sudo mkdir /opt/coffee-shop
+sudo chown agapewien:agapewien /opt/coffee-shop
+sudo -u agapewien git clone <repo-url> /opt/coffee-shop
+cp ~/coffee-shop.env.backup /opt/coffee-shop/.env
+docker compose -f docker-compose.prod.yaml up -d --build
+```
+
+### Recovering from a Prisma migration baseline error (P3005)
+
+Happens when the database was previously set up with `prisma db push` and the repo has since switched to `prisma migrate deploy`. Safe to wipe the DB if no real data exists yet:
+
+```bash
+docker compose -f docker-compose.prod.yaml down -v
+docker compose -f docker-compose.prod.yaml up -d --build
+# then re-seed:
+docker compose -f docker-compose.prod.yaml exec server sh -c "NODE_ENV=development node server/prisma/seed.js"
 ```
 
 ---
