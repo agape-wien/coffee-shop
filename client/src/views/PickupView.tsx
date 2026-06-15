@@ -131,8 +131,12 @@ export default function PickupView() {
               // 4 inter-card gaps, right padding). Gap and container padding both use MUI spacing
               // 3 = 24 px so they match. Font scales proportionally via vw units.
               width: 'calc((100vw - 6 * 24px) / 5)',
+              aspectRatio: '3 / 2',
               p: 2,
               textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               animation: `${fadeScaleIn} 0.35s ease-out`,
               boxSizing: 'border-box',
             }}

@@ -48,9 +48,11 @@ test('order multiple items from multiple categories', async ({ page }) => {
 test('item with note and same item without note become separate cart lines', async ({ page }) => {
   await addItem(page, 'Flat White')
 
-  // Expand notes on the cart line and type a modifier
+  // Open the notes dialog, type a modifier, and save — the dialog must be closed before
+  // the next addItem call or it would block the menu panel click.
   await getCartLine(page, 'Flat White').getByText('Flat White').click()
-  await page.getByPlaceholder('Notes (e.g. oat milk, no sugar)').fill('oat milk')
+  await page.getByRole('dialog').getByPlaceholder('Notes (e.g. oat milk, no sugar)').fill('oat milk')
+  await page.getByRole('dialog').getByRole('button', { name: /save/i }).click()
 
   // Click the menu card again — the notes line is now locked, so this creates a new line
   await addItem(page, 'Flat White')
@@ -59,9 +61,8 @@ test('item with note and same item without note become separate cart lines', asy
   const lines = page.getByTestId('cart-line').filter({ hasText: 'Flat White' })
   await expect(lines).toHaveCount(2)
 
-  // One line has a visible notes input containing the note — filter({ hasText }) won't match
-  // input values (only text nodes), so check the input value directly.
-  await expect(lines.locator('input')).toHaveValue('oat milk')
+  // The locked line shows the note as a text summary below the item name (not an input).
+  await expect(lines.filter({ hasText: 'oat milk' })).toHaveCount(1)
 
   await placeOrder(page)
 })

@@ -28,7 +28,7 @@
   },
   "counter": {
     "prepare": "Prepare",
-    "readyForPickup": "Ready for pickup",
+    "readyForPickup": "Ready for Pickup",
     "nothingToPrepare": "Nothing to prepare",
     "noOrdersReady": "No orders ready"
   },
