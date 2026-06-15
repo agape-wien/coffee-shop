@@ -11,7 +11,7 @@ The interface language is set by the administrator in **Management → Settings 
 - Applies to all screens and all connected devices simultaneously. A customer on the Ordering screen sees the same language as the barista screen.
 - Takes effect immediately without any page refresh.
 - Item descriptions and compositions can have per-language translations managed in the item edit dialog (Management → Menu tab → edit item → Translations section). The English text is always the fallback — if no translation exists for the active language, the English value is shown.
-- Badge letters on the pickup display ("C" / "O") are not translated — they are consistent identifiers regardless of language setting.
+- Badge letters on the Pickup display follow the **Pickup display language** setting (Management → Settings → Language → Pickup display language), which is independent of the general interface language. English: C / O; Deutsch: K / A; Română: C / A. The Counter screen always shows C / O regardless of this setting.
 
 ---
 

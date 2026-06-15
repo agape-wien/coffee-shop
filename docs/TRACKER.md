@@ -7,7 +7,7 @@
 
 ## Current status
 
-**Phase:** Production feedback — items 1–9 done, items 10–12 queued  
+**Phase:** Production feedback — items 1–10 done, items 11–13 queued  
 **Last updated:** 2026-06-15  
 **Active work:** Nothing in progress — session closed cleanly.
 
@@ -17,14 +17,14 @@
 
 Work through the remaining production feedback items in order. Each is independent; no blockers between them.
 
-1. **Item 11 — Table label on counter pickup badges** (`client/src/views/CounterView.tsx`)
+1. **Item 11 — Per-device settings** (new `DeviceConfig` DB table + `PUT /api/v1/device-config/:deviceId`)
+   Depends on item 9 (font sizes in DB). UUID in localStorage identifies device. Settings modal (top-left button on every view) for font size, language, dark mode. Device values win over AdminConfig global defaults. Pickup language excluded from per-device override.
+
+2. **Item 12 — Table label on counter pickup badges** (`client/src/views/CounterView.tsx`)
    For non-bar orders, append table label to the badge: `42 C · Table 4`. Requires threading `tableId` / `tableLabel` through to the `DonePart` interface. Bar orders unchanged. `/pickup` screen excluded.
 
-6. **Item 12 — Ready indicator on Open tab** (`client/src/views/order/CartPanel.tsx`)
+3. **Item 13 — Ready indicator on Open tab** (`client/src/views/order/CartPanel.tsx`)
    Coloured dot or badge on the Open tab when any open order for the current table has a DONE part. Clears when all DONE parts are delivered. The existing `order:updated` subscription already drives the state — no new socket work needed.
-
-7. **Item 10 — Per-device settings** (new `DeviceConfig` DB table + `PUT /api/v1/device-config/:deviceId`)
-   Depends on item 9 (font sizes in DB). UUID in localStorage identifies device. Settings modal (top-left button on every view) for font size, language, dark mode. Device values win over AdminConfig global defaults. Pickup language excluded from per-device override.
 
 ---
 
@@ -304,49 +304,51 @@ Issues and improvements found during the first real-device test. Work through th
 - Dialog opens on item name tap, has Save/Cancel, uses local draft state (Cancel reverts)
 - Cart line shows saved notes as a tappable summary line (tap to reopen dialog)
 
-### 6. Collapsible order summary in Management → Orders tab
-- The summary section (3 scalar cards + per-item breakdown) is always visible; collapse it by default
-- Add a "Summary" header row with a chevron icon (collapsed by default, expands on click)
-- The existing three scalar cards (Orders, Coffee equivalent, Milk) and per-item breakdown card stay as-is inside the collapsible
-- Relevant file: `client/src/views/management/OrdersSection.tsx` — `computeSummary()` and the summary card block
+### 6. Collapsible order summary in Management → Orders tab ✅
+- Summary section (3 scalar cards + per-item breakdown) wrapped in MUI `Collapse`
+- "Summary" header row with rotating chevron added above the collapse; closed by default
+- No change to the content of the summary cards themselves
 
-### 7. Time granularity in order filter (Management → Orders tab)
-- Currently the filter is date-only; add time inputs so orders can be filtered by a specific time range within a day
-- Relevant file: `client/src/views/management/OrdersSection.tsx` — date filter state and `GET /api/v1/management/orders?from=&to=`
-- The `from` and `to` params already accept ISO datetime strings on the backend; this is purely a UI change
+### 7. Time granularity in order filter (Management → Orders tab) ✅
+- `fromDate` + `fromTime` (default `00:00`) and `toDate` + `toTime` (default `23:59`) replace the single from/to date state
+- Two `type="time"` TextField inputs added to the filter toolbar alongside the existing date pickers
+- Filter constructs full ISO strings: `${date}T${time}:00.000Z` / `${date}T${time}:59.999Z`
+- Backend `GET /orders` updated to detect and pass through datetime strings (was hardcoding `T00:00:00.000Z` suffix)
 
-### 8. Bulk delete orders (Management → Orders tab)
-- Add a checkbox to each order row and a "select all" checkbox in the table header
-- "Select all" selects only the currently filtered/visible entries, not the entire database
-- A Delete button appears in the toolbar when at least one entry is selected; disabled otherwise
-- Pressing Delete opens a confirmation modal listing how many orders will be removed; on confirm, deletes them
-- **Permanent deletion** — soft delete (flag + filter everywhere) adds hidden complexity for no real benefit here; orders are operational records, not financial audit trails. Implement as hard delete from DB.
-- New endpoint needed: `DELETE /api/v1/management/orders` with a body of `{ ids: string[] }`, JWT-protected
-- Note: deleting an order does not affect the daily counter — order numbers already issued are never reused regardless
+### 8. Bulk delete orders (Management → Orders tab) ✅
+- `Checkbox` per order row (click does not expand the row — `stopPropagation`)
+- Select-all checkbox with indeterminate state above the list; selects all visible/filtered orders
+- "Delete (N)" outlined error button appears in toolbar when any rows are checked
+- Confirmation `Dialog` with order count; permanent hard delete from DB on confirm
+- `DELETE /api/v1/management/orders` endpoint accepts `{ ids: string[] }` (max 200), JWT-protected
+- Daily counter unaffected — issued numbers are never reused regardless
 
-### 9. Font sizes configurable from Management UI (global default)
-- Move font size values from hardcoded CSS into `AdminConfig` (three new columns: `fsPrimary`, `fsSecondary`, `fsSmall`, stored as integers in px)
-- Add a "Font sizes" section in Management → Settings with three number inputs
-- Expose via the existing `GET /api/v1/auth/menu-display` endpoint (or a new public config endpoint) so all views can read them on startup
-- Apply them by writing to CSS custom properties at runtime (`document.documentElement.style.setProperty('--fs-primary', ...)`) — same pattern as dark mode
-- Default values: whatever the current hardcoded values are after item 1 (the 50% increase)
-- This is the foundation for item 10 (per-device override)
+### 9. Font sizes configurable from Management UI (global default) ✅
+- `fsPrimary Int @default(36)`, `fsSecondary Int @default(29)`, `fsSmall Int @default(24)` added to `AdminConfig`; migration `20260615000000_add_font_sizes` applied
+- `getMenuDisplay()` in `adminConfig.ts` extended to include font sizes; `setFontSizes()` added
+- `PUT /api/v1/management/settings/font-sizes` endpoint (range 8–120 px, all three in one write)
+- `client/src/stores/fontSizeStore.ts` — Zustand store; applies CSS vars at module load (localStorage fast path); DB authoritative via `MenuDisplaySync` in `App.tsx`
+- "Font sizes" section added to Management → Settings with three number inputs and a Save button
 
-### 11. Table label on counter pickup badges
-- Currently the counter pickup panel shows `42 C` / `42 O` with no table context — a server picking it up has no visual signal of where to bring it
-- For table orders (any `tableId` that is not `'bar'`), append the table label to the badge: e.g. `42 C · Table 4`
-- Bar orders remain unchanged (no table label needed — customer is at the counter)
-- Requires `tableLabel` (or `tableId` + a lookup) to be included in the `DonePart` interface already used by `CounterView.tsx`; `tableId` is already on `Order`, just not threaded through to the badge render
-- The pickup display (`/pickup`) intentionally excluded from this change — customers only look for their own number, and the number is enough; adding table text would clutter the big screen for no benefit to the customer
+### 10. Events — named time-range filter presets ✅
 
-### 12. "Ready" indicator for table orders on the ordering view
-- When a part of a table order transitions to DONE, the Open tab in the ordering view already shows the updated status chip — but nothing draws the server's attention to it
-- Add a visual indicator (e.g. a coloured dot or badge on the Open tab itself, similar to the existing order count badge) that lights up when any open order for the current table has a DONE part
-- The server glances at the screen, sees the indicator, switches to the Open tab, and taps Deliver
-- This indicator should clear once all DONE parts are delivered (tapped) — the existing `order:updated` socket subscription in `CartPanel.tsx` already drives this state, so no new socket work is needed
-- Consider also using a distinct chip colour for DONE parts within the order card (currently uses `success` green — verify it's visible enough at a glance)
+Named time windows stored in the database, selectable as a one-click filter preset in the Orders tab.
 
-### 10. Per-device settings (font size, language, dark/light mode)
+- `Event` Prisma model (`id`, `name`, `fromTime DateTime`, `toTime DateTime`); migration `20260615000001_add_events` applied
+- `GET/POST /api/v1/management/events` + `PUT/DELETE /api/v1/management/events/:id` — full CRUD, JWT-protected; GET ordered by `fromTime DESC`
+- Events Select dropdown sits above the date/time filter row in `OrdersSection.tsx`
+  - Selecting an event populates all four filter inputs and triggers an order reload
+  - Editing any filter input manually clears the event selection (timestamps no longer match)
+  - Add (+) button pre-fills the dialog from the current filter values (save an active range instantly)
+  - After save, the created/edited event is auto-selected and applied immediately
+  - Edit / Delete icon buttons operate on the currently selected event; both disabled when nothing is selected
+- Translations in EN / DE / RO
+
+**Future extensions (not urgent):**
+- **Tables per event** — record which tables were occupied during each event
+- **Category breakdown per event** — aggregate beverage categories ordered per event for stock planning
+
+### 11. Per-device settings (font size, language, dark/light mode)
 - Each device gets a random UUID stored in localStorage on first visit (`deviceId`). This identifies the device without any login.
 - New DB table `DeviceConfig (deviceId String @id, fsPrimary Int?, fsSecondary Int?, fsSmall Int?, language String?, darkMode Boolean?)` — nullable columns mean "use global default from AdminConfig"
 - A settings button in the **top-left corner of the header** on every view opens a settings modal (not a separate page — modal is the right call: no navigation needed, works cleanly on kiosk/tablet, consistent with the rest of the UI)
@@ -358,7 +360,21 @@ Issues and improvements found during the first real-device test. Work through th
   - Pickup screen language: global only, configured in Management Settings (item 4), not overridable per device
   - Management view dark mode / language: per-device, configured via the same settings modal
 - Default on first load or cache clear: light mode, app language from AdminConfig, font sizes from AdminConfig
-- **Dependency:** implement item 9 first (font sizes in DB) — item 10 builds directly on top of it
+- **Dependency:** item 9 (font sizes in DB) must be done first — ✅ already complete
+
+### 12. Table label on counter pickup badges
+- Currently the counter pickup panel shows `42 C` / `42 O` with no table context — a server picking it up has no visual signal of where to bring it
+- For table orders (any `tableId` that is not `'bar'`), append the table label to the badge: e.g. `42 C · Table 4`
+- Bar orders remain unchanged (no table label needed — customer is at the counter)
+- Requires `tableLabel` (or `tableId` + a lookup) to be included in the `DonePart` interface already used by `CounterView.tsx`; `tableId` is already on `Order`, just not threaded through to the badge render
+- The pickup display (`/pickup`) intentionally excluded from this change — customers only look for their own number, and the number is enough; adding table text would clutter the big screen for no benefit to the customer
+
+### 13. "Ready" indicator for table orders on the ordering view
+- When a part of a table order transitions to DONE, the Open tab in the ordering view already shows the updated status chip — but nothing draws the server's attention to it
+- Add a visual indicator (e.g. a coloured dot or badge on the Open tab itself, similar to the existing order count badge) that lights up when any open order for the current table has a DONE part
+- The server glances at the screen, sees the indicator, switches to the Open tab, and taps Deliver
+- This indicator should clear once all DONE parts are delivered (tapped) — the existing `order:updated` socket subscription in `CartPanel.tsx` already drives this state, so no new socket work is needed
+- Consider also using a distinct chip colour for DONE parts within the order card (currently uses `success` green — verify it's visible enough at a glance)
 
 ---
 

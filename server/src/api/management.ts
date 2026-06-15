@@ -434,6 +434,63 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
   })
 
+  // ─── Events ───────────────────────────────────────────────────────────────────
+
+  const EventCreateSchema = z.object({
+    name: z.string().min(1).max(100),
+    fromTime: z.string().datetime({ message: 'fromTime must be an ISO 8601 datetime string' }),
+    toTime: z.string().datetime({ message: 'toTime must be an ISO 8601 datetime string' }),
+  })
+
+  const EventUpdateSchema = EventCreateSchema.partial()
+
+  // Returns all events ordered by fromTime descending (most recent event first).
+  router.get('/events', async (_req, res) => {
+    try {
+      const events = await prisma.event.findMany({ orderBy: { fromTime: 'desc' } })
+      res.json({ data: events })
+    } catch {
+      res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
+    }
+  })
+
+  router.post('/events', async (req, res) => {
+    const result = EventCreateSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: result.error.errors[0]?.message ?? 'Invalid body', code: 'VALIDATION_ERROR' })
+      return
+    }
+    try {
+      const event = await prisma.event.create({ data: result.data })
+      res.status(201).json({ data: event })
+    } catch {
+      res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
+    }
+  })
+
+  router.put('/events/:id', async (req, res) => {
+    const result = EventUpdateSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ error: result.error.errors[0]?.message ?? 'Invalid body', code: 'VALIDATION_ERROR' })
+      return
+    }
+    try {
+      const event = await prisma.event.update({ where: { id: req.params.id }, data: result.data })
+      res.json({ data: event })
+    } catch {
+      res.status(404).json({ error: 'Event not found', code: 'NOT_FOUND' })
+    }
+  })
+
+  router.delete('/events/:id', async (req, res) => {
+    try {
+      await prisma.event.delete({ where: { id: req.params.id } })
+      res.status(204).end()
+    } catch {
+      res.status(404).json({ error: 'Event not found', code: 'NOT_FOUND' })
+    }
+  })
+
   // ─── Settings ────────────────────────────────────────────────────────────────
 
   const LanguageSchema = z.object({

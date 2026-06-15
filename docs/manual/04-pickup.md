@@ -13,6 +13,16 @@ Each ready order part appears as a large badge:
 - **"42 C"** — the coffee part of order 42 is ready
 - **"42 O"** — the other (non-coffee) part of order 42 is ready
 
+The badge letters follow the **Pickup display language** setting (Management → Settings → Language → Pickup display language), which is separate from the general app language:
+
+| Pickup language | Coffee badge | Other badge |
+|-----------------|-------------|-------------|
+| English | C | O |
+| Deutsch | K | A |
+| Română | C | A |
+
+The Counter screen always shows "C" / "O" regardless of this setting.
+
 Badges are sorted by order number in ascending order. New badges animate in with a fade and scale effect.
 
 The display is designed to be readable from approximately 3 meters away.

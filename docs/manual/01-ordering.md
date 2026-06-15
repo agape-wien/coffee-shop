@@ -84,11 +84,11 @@ Shown **only when the Bar table is selected**. Hidden for all other tables (tabl
 Each item in the cart appears as one or more lines. The same menu item can appear on multiple lines if it has different notes.
 
 Each cart line shows:
-- Item name (tap to expand/collapse the notes field)
+- Item name (tap to open the notes dialog)
 - Quantity controls (− and + buttons)
-- Notes field (hidden by default; tap the item name to reveal; auto-collapses when you leave focus if the field is empty)
+- Note summary line — shown below the item name when a note has been saved; tap it to reopen the dialog
 
-**Notes behavior:** Notes are free-text modifiers (milk type, temperature, extras, etc.). A line's notes are locked once filled in — tapping the menu card again will not increment a line that already has notes. It creates a new empty-notes line instead. This is intentional: it preserves the separation between e.g. "oat milk" and "regular milk" variants of the same item.
+**Notes behavior:** Tapping the item name opens a dialog with a free-text notes field and **Save** / **Cancel** buttons. Edits are local until Save is tapped — dismissing or cancelling the dialog reverts unsaved changes. A line's notes are locked once saved — tapping the menu card again will not increment a line that already has notes; it creates a new empty-notes line instead. This is intentional: it preserves the separation between e.g. "oat milk" and "regular milk" variants of the same item.
 
 **Removing items:** Use the − button to reduce quantity. Reaching 0 removes the line.
 
@@ -141,8 +141,10 @@ In QR mode, the Open tab only shows orders belonging to the token's table. The c
 | Tap a menu item already in cart (no notes) | Quantity on that line increments by 1 |
 | Tap a menu item whose only lines all have notes | New separate line created (quantity = 1, no notes) |
 | Fill in notes on a cart line, then tap the menu card again | New empty-notes line added; existing line with notes unchanged |
-| Tap item name on a cart line | Notes field expands |
-| Leave notes empty and click away | Notes field collapses; no note saved |
+| Tap item name on a cart line | Notes dialog opens |
+| Edit notes in dialog, tap Cancel | Dialog closes; no change saved |
+| Edit notes in dialog, tap Save | Dialog closes; note saved; summary line appears below item name |
+| Tap note summary line | Notes dialog reopens with current note pre-filled |
 | Override order number to 50, submit | Next auto-fill shows 51 |
 | Submit order | Cart clears; order appears in Open tab; appears on barista/counter screen |
 | Open `/order?table={token}` | Table picker hidden; table auto-selected; Open tab shows only that table's orders |

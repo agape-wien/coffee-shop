@@ -155,7 +155,18 @@
       "selectAll": "Alle auswählen",
       "deleteSelected": "Löschen ({{count}})",
       "deleteTitle": "Bestellungen löschen",
-      "deleteConfirmMessage": "{{count}} Bestellungen dauerhaft löschen? Dies kann nicht rückgängig gemacht werden."
+      "deleteConfirmMessage": "{{count}} Bestellungen dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.",
+      "event": "Veranstaltung",
+      "noEvent": "Kein Zeitraum-Filter",
+      "noEventsDefined": "Noch keine Veranstaltungen definiert",
+      "addEvent": "Veranstaltung hinzufügen",
+      "editEvent": "Veranstaltung bearbeiten",
+      "deleteEvent": "Veranstaltung löschen",
+      "addEventTitle": "Veranstaltung hinzufügen",
+      "editEventTitle": "Veranstaltung bearbeiten",
+      "eventName": "Name der Veranstaltung",
+      "deleteEventTitle": "Veranstaltung löschen",
+      "deleteEventMessage": "\"{{name}}\" löschen? Bestellungen bleiben erhalten."
     },
     "settings": {
       "title": "Einstellungen",

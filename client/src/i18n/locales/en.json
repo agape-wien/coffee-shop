@@ -155,7 +155,18 @@
       "selectAll": "Select all",
       "deleteSelected": "Delete ({{count}})",
       "deleteTitle": "Delete orders",
-      "deleteConfirmMessage": "Permanently delete {{count}} orders? This cannot be undone."
+      "deleteConfirmMessage": "Permanently delete {{count}} orders? This cannot be undone.",
+      "event": "Event",
+      "noEvent": "No event filter",
+      "noEventsDefined": "No events defined yet",
+      "addEvent": "Add event",
+      "editEvent": "Edit event",
+      "deleteEvent": "Delete event",
+      "addEventTitle": "Add event",
+      "editEventTitle": "Edit event",
+      "eventName": "Event name",
+      "deleteEventTitle": "Delete event",
+      "deleteEventMessage": "Delete \"{{name}}\"? Orders are not affected."
     },
     "settings": {
       "title": "Settings",

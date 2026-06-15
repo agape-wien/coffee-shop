@@ -128,22 +128,36 @@ The QR encodes a URL in the format `{base-url}/order?table={token}`. The base UR
 
 Shows order history with a date-range filter.
 
+### Events
+
+Events are named time-range presets that can be applied to the filter with one click. They work like saved favorites for the date/time filter.
+
+- **Event dropdown:** Appears above the date/time inputs. Shows all saved events by name. Selecting an event from the dropdown instantly fills all four filter fields (From date, From time, To date, To time) with the event's stored values.
+- **+ button (Add):** Opens the Add event dialog. The dialog pre-fills From/To values from whatever is currently in the filter inputs, so the typical flow is: set your filter to cover the event, then click + to save it with a name.
+- **Edit icon:** Opens the Edit dialog for the currently selected event. Only available when an event is selected in the dropdown.
+- **Delete icon:** Opens a delete confirmation for the currently selected event. Deleting an event does not affect any orders — it only removes the preset. Only available when an event is selected in the dropdown.
+
+Manually changing any filter field after selecting an event clears the event selection (the dropdown returns to "No event filter"). This signals that the current filter no longer matches any saved event.
+
 ### Filters
 
 - **From / To date pickers:** Defaults to the current day (today → today). Adjust to view historical data.
+- **From time / To time:** Time inputs paired with the date pickers. Default to `00:00` and `23:59`. Use these to filter within a specific time window on the selected dates — useful for events that ran only part of a day.
 - **Refresh button:** Re-fetches orders with the current filter. Use this after placing test orders to see them appear.
 
 The endpoint returns a maximum of 200 orders per query.
 
-### Summary cards
+### Summary
 
-Three stat cards appear above the order list:
+Three stat cards and a per-item breakdown. **Collapsed by default** — click the **Summary** row (or its chevron icon) to expand it.
+
+Three stat cards appear inside the expanded summary:
 
 - **Orders:** Total count of non-cancelled orders in the selected range
 - **Coffee equivalent (portions):** Sum of EE (espresso-equivalent) values across all non-cancelled order items
 - **Milk (L):** Sum of ME (milk-equivalent) values, converted from ml to litres
 
-A per-item breakdown card below the stats shows quantity, EE portions, and milk (L) for every item that appears in the results. Columns show `—` when the value is zero.
+A per-item breakdown table shows quantity, EE portions, and milk (L) for every item that appears in the results. Columns show `—` when the value is zero.
 
 ### Order list
 
@@ -152,6 +166,15 @@ Each order row shows: order number, table, time placed, coffee status chip, othe
 **Expanding a row** reveals the full item list with quantities, notes, and the status of each part.
 
 Status chips use translated labels (not raw system values). An order with only coffee items has no "other" chip, and vice versa.
+
+### Bulk delete
+
+Each order row has a checkbox on the left. Checking one or more rows enables the **Delete (N)** button in the toolbar.
+
+- **Select all checkbox** (in the toolbar) selects or deselects all currently visible rows.
+- The **Delete (N)** button opens a confirmation dialog naming how many orders will be permanently removed.
+- Deletion is permanent and cannot be undone.
+- Selecting rows does not affect order state — checked rows are just marked for deletion.
 
 ---
 
@@ -167,11 +190,11 @@ Three fields: current password, new password, confirm new password.
 
 ### Language
 
-A dropdown to select the interface language: **English**, **Deutsch**, or **Română**.
+Two language dropdowns:
 
-- Applies globally to all screens and all connected devices.
-- Takes effect immediately; no page refresh needed.
-- Romanian includes proper plural forms for item counts.
+**Interface language** — applies to all screens and all connected devices: **English**, **Deutsch**, or **Română**. Takes effect immediately; no page refresh needed. Romanian includes proper plural forms for item counts.
+
+**Pickup display language** — controls only the badge letters on the Pickup display (`/pickup`). Independent of the interface language so the pickup screen can show localized letters while staff screens use a different language. Options: English (C / O), Deutsch (K / A), Română (C / A). The Counter screen always uses C / O regardless of this setting.
 
 ### Appearance
 
@@ -188,6 +211,18 @@ Three toggles controlling what appears on item cards in the Ordering screen:
 | Show item image | Image above the item name |
 
 These apply globally to all devices. They do not affect the management screen itself.
+
+### Font sizes
+
+Three numeric inputs (in pixels) controlling the three text size tiers used across all screens:
+
+| Field | Default | Used for |
+|-------|---------|---------|
+| Primary | 36 px | Order numbers on the Pickup display; large headings |
+| Secondary | 29 px | Section headings; item names on the Ordering screen |
+| Small | 24 px | Supporting text; status chips; timestamps |
+
+Values must be integers between 8 and 120. Click **Save** to apply. Changes take effect immediately on all connected devices. Settings are stored in the database and restored on page load.
 
 ### QR base URL
 
@@ -215,3 +250,14 @@ A text field for the base URL used when generating QR codes in the Tables tab. L
 | Upload an image for an item | Preview shown in dialog immediately; after save, image appears on ordering screen |
 | Set QR base URL to network IP | QR codes generated in the Tables tab encode the new base URL |
 | Open Orders tab, set date range | Orders within that range shown; summary stats update accordingly |
+| Open Orders tab, click Summary chevron | Summary section expands showing stat cards and per-item breakdown |
+| Open Orders tab, click Summary again | Summary section collapses |
+| Set From/To filter, click + (Add event) | Add event dialog opens with From/To pre-filled from current filter; enter name, save |
+| Select saved event from dropdown | All four filter fields update to the event's stored dates/times |
+| Select event, click edit icon | Edit dialog opens with event's current values pre-filled |
+| Select event, click delete icon | Delete confirmation shown; confirming removes the event |
+| Select event, manually change any filter field | Event dropdown clears to "No event filter" |
+| Check one order row, click Delete (1) | Confirmation dialog; confirm permanently removes that order |
+| Check select-all checkbox | All visible order rows selected |
+| Change pickup language to Deutsch | Badge letters on Pickup display change to K / A; Counter screen unchanged |
+| Change font sizes, click Save | All screens update text sizes immediately |

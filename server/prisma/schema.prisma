@@ -96,6 +96,18 @@ model Table {
   orders  Order[]
 }
 
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+// Named time windows used as saved filter presets in the management Orders tab.
+// Staff define events (e.g. "Friday evening", "Saturday market") so they can quickly
+// re-filter order history to a known window without re-entering dates each time.
+model Event {
+  id       String   @id @default(cuid())
+  name     String
+  fromTime DateTime
+  toTime   DateTime
+}
+
 // ─── Order number counter ─────────────────────────────────────────────────────
 
 // Tracks the next order number per calendar date.

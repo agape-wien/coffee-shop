@@ -2,6 +2,8 @@
 // Defaults to today 00:00–23:59 UTC. Each row is expandable to show item detail.
 // Summary cards (collapsible, closed by default) show totals for non-cancelled orders only.
 // Rows can be multi-selected for bulk hard-delete.
+// Events are named time-range presets: selecting one from the dropdown applies its
+// from/to timestamps to the filter fields so staff can quickly re-filter to a known window.
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
@@ -16,13 +18,19 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
+import FormControl from '@mui/material/FormControl'
 import IconButton from '@mui/material/IconButton'
+import InputLabel from '@mui/material/InputLabel'
+import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
+import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import AddIcon from '@mui/icons-material/Add'
 import CoffeeIcon from '@mui/icons-material/Coffee'
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
+import EditIcon from '@mui/icons-material/Edit'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FastfoodIcon from '@mui/icons-material/Fastfood'
 import RefreshIcon from '@mui/icons-material/Refresh'
@@ -43,6 +51,13 @@ interface OrderRow {
   createdAt: string
   table: { id: string; number: number; label: string | null }
   items: OrderItem[]
+}
+
+interface EventRow {
+  id: string
+  name: string
+  fromTime: string  // ISO datetime string (UTC)
+  toTime: string    // ISO datetime string (UTC)
 }
 
 interface ItemSummary {
@@ -118,6 +133,19 @@ function todayString(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Formats a stored ISO datetime (UTC) as a human-readable range label.
+// The datetime strings are treated as UTC throughout — the same convention
+// used by the filter inputs (times appended with 'Z').
+function formatEventRange(event: EventRow): string {
+  const from = event.fromTime.slice(0, 16).replace('T', ' ')
+  const to = event.toTime.slice(0, 16).replace('T', ' ')
+  const fromDatePart = from.slice(0, 10)
+  const toDatePart = to.slice(0, 10)
+  return fromDatePart === toDatePart
+    ? `${from} – ${to.slice(11)}`   // same day: "2026-06-15 08:00 – 23:59"
+    : `${from} – ${to}`             // different days: full both sides
+}
+
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, unit }: { label: string; value: string; unit: string }) {
@@ -152,7 +180,6 @@ function SummaryCards({ summary }: { summary: Summary }) {
           <Typography variant="body2" color="text.secondary">{t('management.orders.noItems')}</Typography>
         ) : (
           <Box>
-            {/* Header */}
             <Box sx={{ display: 'flex', gap: 2, pb: 0.5, mb: 0.5 }}>
               <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>{t('management.orders.colItem')}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ width: 48, textAlign: 'right' }}>{t('management.orders.colQty')}</Typography>
@@ -184,10 +211,14 @@ function SummaryCards({ summary }: { summary: Summary }) {
 export default function OrdersSection({ token }: { token: string }) {
   const { t } = useTranslation()
   const today = todayString()
+
+  // ── Filter state ──────────────────────────────────────────────────────────
   const [fromDate, setFromDate] = useState(today)
   const [fromTime, setFromTime] = useState('00:00')
   const [toDate, setToDate] = useState(today)
   const [toTime, setToTime] = useState('23:59')
+
+  // ── Order list state ──────────────────────────────────────────────────────
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -195,6 +226,22 @@ export default function OrdersSection({ token }: { token: string }) {
   const [selected, setSelected] = useState<string[]>([])
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // ── Event state ───────────────────────────────────────────────────────────
+  const [events, setEvents] = useState<EventRow[]>([])
+  const [selectedEventId, setSelectedEventId] = useState('')
+  const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<EventRow | null>(null)
+  const [eventName, setEventName] = useState('')
+  const [eventFromDate, setEventFromDate] = useState('')
+  const [eventFromTime, setEventFromTime] = useState('00:00')
+  const [eventToDate, setEventToDate] = useState('')
+  const [eventToTime, setEventToTime] = useState('23:59')
+  const [eventSaving, setEventSaving] = useState(false)
+  const [deleteEventOpen, setDeleteEventOpen] = useState(false)
+  const [deletingEvent, setDeletingEvent] = useState(false)
+
+  // ── Load orders ───────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -213,6 +260,22 @@ export default function OrdersSection({ token }: { token: string }) {
 
   useEffect(() => { void load() }, [load])
 
+  // ── Load events (once on mount) ───────────────────────────────────────────
+
+  const loadEvents = useCallback(async () => {
+    try {
+      const res = await apiFetch(token, '/api/v1/management/events')
+      const json = await res.json() as { data?: EventRow[] }
+      if (json.data) setEvents(json.data)
+    } catch {
+      // Non-critical — events list stays empty if the fetch fails
+    }
+  }, [token])
+
+  useEffect(() => { void loadEvents() }, [loadEvents])
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   const tableLabel = (order: OrderRow) => {
     const tbl = order.table
     if (tbl.id === 'bar') return t('common.bar')
@@ -229,10 +292,16 @@ export default function OrdersSection({ token }: { token: string }) {
 
   const allSelected = orders.length > 0 && selected.length === orders.length
   const someSelected = selected.length > 0 && selected.length < orders.length
+  const toggleAll = () => { setSelected(allSelected ? [] : orders.map((o) => o.id)) }
 
-  const toggleAll = () => {
-    setSelected(allSelected ? [] : orders.map((o) => o.id))
-  }
+  // Applying a filter input manually deselects the active event — the stored
+  // timestamps no longer match what the user has typed.
+  const handleFromDate = (v: string) => { setFromDate(v); setSelectedEventId('') }
+  const handleFromTime = (v: string) => { setFromTime(v); setSelectedEventId('') }
+  const handleToDate = (v: string) => { setToDate(v); setSelectedEventId('') }
+  const handleToTime = (v: string) => { setToTime(v); setSelectedEventId('') }
+
+  // ── Bulk delete orders ────────────────────────────────────────────────────
 
   const confirmDelete = async () => {
     setDeleting(true)
@@ -249,31 +318,168 @@ export default function OrdersSection({ token }: { token: string }) {
     }
   }
 
+  // ── Event handlers ────────────────────────────────────────────────────────
+
+  // Applying an event populates the filter inputs with its stored timestamps,
+  // which triggers the orders useEffect to reload with the new range.
+  const applyEvent = (eventId: string) => {
+    setSelectedEventId(eventId)
+    if (!eventId) return
+    const ev = events.find((e) => e.id === eventId)
+    if (!ev) return
+    setFromDate(ev.fromTime.slice(0, 10))
+    setFromTime(ev.fromTime.slice(11, 16))
+    setToDate(ev.toTime.slice(0, 10))
+    setToTime(ev.toTime.slice(11, 16))
+  }
+
+  // Opens the add dialog pre-filled with the current filter values so staff can
+  // quickly save an active filter range as a named event in one click.
+  const openAddEvent = () => {
+    setEditingEvent(null)
+    setEventName('')
+    setEventFromDate(fromDate)
+    setEventFromTime(fromTime)
+    setEventToDate(toDate)
+    setEventToTime(toTime)
+    setEventDialogOpen(true)
+  }
+
+  const openEditEvent = () => {
+    const ev = events.find((e) => e.id === selectedEventId)
+    if (!ev) return
+    setEditingEvent(ev)
+    setEventName(ev.name)
+    setEventFromDate(ev.fromTime.slice(0, 10))
+    setEventFromTime(ev.fromTime.slice(11, 16))
+    setEventToDate(ev.toTime.slice(0, 10))
+    setEventToTime(ev.toTime.slice(11, 16))
+    setEventDialogOpen(true)
+  }
+
+  const saveEvent = async () => {
+    if (!eventName.trim() || !eventFromDate || !eventToDate) return
+    setEventSaving(true)
+    try {
+      const body = {
+        name: eventName.trim(),
+        fromTime: `${eventFromDate}T${eventFromTime}:00.000Z`,
+        toTime: `${eventToDate}T${eventToTime}:59.999Z`,
+      }
+      let savedId = editingEvent?.id ?? ''
+      if (editingEvent) {
+        await apiFetch(token, `/api/v1/management/events/${editingEvent.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        })
+      } else {
+        const res = await apiFetch(token, '/api/v1/management/events', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        })
+        const json = await res.json() as { data?: EventRow }
+        savedId = json.data?.id ?? ''
+      }
+      setEventDialogOpen(false)
+      await loadEvents()
+      // Auto-select the saved event so the filter reflects it immediately.
+      if (savedId) applyEvent(savedId)
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
+  const confirmDeleteEvent = async () => {
+    if (!selectedEventId) return
+    setDeletingEvent(true)
+    try {
+      await apiFetch(token, `/api/v1/management/events/${selectedEventId}`, { method: 'DELETE' })
+      setSelectedEventId('')
+      setDeleteEventOpen(false)
+      await loadEvents()
+    } finally {
+      setDeletingEvent(false)
+    }
+  }
+
   const summary = computeSummary(orders)
 
   return (
     <Box>
-      {/* Toolbar: date+time filter, refresh, bulk-delete */}
+      {/* ── Events row ─────────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1.5, flexWrap: 'wrap' }}>
+        <FormControl size="small" sx={{ minWidth: 240 }}>
+          <InputLabel>{t('management.orders.event')}</InputLabel>
+          <Select
+            value={selectedEventId}
+            label={t('management.orders.event')}
+            displayEmpty
+            onChange={(e) => applyEvent(String(e.target.value))}
+            renderValue={(val) => {
+              if (!val) return <em style={{ fontStyle: 'normal', color: 'inherit' }}>{t('management.orders.noEvent')}</em>
+              const ev = events.find((e) => e.id === val)
+              return ev ? ev.name : ''
+            }}
+          >
+            <MenuItem value=""><em>{t('management.orders.noEvent')}</em></MenuItem>
+            {events.length === 0 && (
+              <MenuItem disabled>
+                <Typography variant="body2" color="text.secondary">{t('management.orders.noEventsDefined')}</Typography>
+              </MenuItem>
+            )}
+            {events.map((ev) => (
+              <MenuItem key={ev.id} value={ev.id}>
+                <Box>
+                  <Typography variant="body2">{ev.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">{formatEventRange(ev)}</Typography>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Tooltip title={t('management.orders.editEvent')}>
+          <span>
+            <IconButton size="small" onClick={openEditEvent} disabled={!selectedEventId}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={t('management.orders.deleteEvent')}>
+          <span>
+            <IconButton size="small" onClick={() => setDeleteEventOpen(true)} disabled={!selectedEventId} color="error">
+              <DeleteForeverIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={t('management.orders.addEvent')}>
+          <IconButton size="small" onClick={openAddEvent} color="primary">
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* ── Filter toolbar ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6" sx={{ mr: 1 }}>{t('management.orders.title')}</Typography>
         <TextField
           label={t('management.orders.from')} type="date" size="small" value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
+          onChange={(e) => handleFromDate(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
         <TextField
           label={t('management.orders.fromTime')} type="time" size="small" value={fromTime}
-          onChange={(e) => setFromTime(e.target.value)}
+          onChange={(e) => handleFromTime(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
         />
         <TextField
           label={t('management.orders.to')} type="date" size="small" value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
+          onChange={(e) => handleToDate(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
         />
         <TextField
           label={t('management.orders.toTime')} type="time" size="small" value={toTime}
-          onChange={(e) => setToTime(e.target.value)}
+          onChange={(e) => handleToTime(e.target.value)}
           InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
         />
         <Tooltip title={t('management.orders.refresh')}>
@@ -285,9 +491,7 @@ export default function OrdersSection({ token }: { token: string }) {
         </Tooltip>
         {selected.length > 0 && (
           <Button
-            variant="outlined"
-            color="error"
-            size="small"
+            variant="outlined" color="error" size="small"
             startIcon={<DeleteForeverIcon />}
             onClick={() => setDeleteOpen(true)}
           >
@@ -305,25 +509,16 @@ export default function OrdersSection({ token }: { token: string }) {
         <>
           {!loading && (
             <>
-              {/* Collapsible summary header — closed by default */}
+              {/* Collapsible summary — closed by default */}
               <Box
                 onClick={() => setSummaryOpen((v) => !v)}
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  mb: 1,
-                  px: 0.5,
-                  userSelect: 'none',
-                  '&:hover': { color: 'primary.main' },
+                  display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 1, px: 0.5,
+                  userSelect: 'none', '&:hover': { color: 'primary.main' },
                 }}
               >
                 <ExpandMoreIcon
-                  sx={{
-                    mr: 0.5,
-                    transition: 'transform 0.2s',
-                    transform: summaryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  }}
+                  sx={{ mr: 0.5, transition: 'transform 0.2s', transform: summaryOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
                 />
                 <Typography variant="subtitle2">{t('management.orders.summary')}</Typography>
               </Box>
@@ -333,15 +528,11 @@ export default function OrdersSection({ token }: { token: string }) {
             </>
           )}
 
-          {/* Select-all row */}
           {orders.length > 0 && !loading && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, pl: 0.5 }}>
               <Checkbox
-                size="small"
-                checked={allSelected}
-                indeterminate={someSelected}
-                onChange={toggleAll}
-                sx={{ p: 0.5 }}
+                size="small" checked={allSelected} indeterminate={someSelected}
+                onChange={toggleAll} sx={{ p: 0.5 }}
               />
               <Typography variant="caption" color="text.secondary">
                 {t('management.orders.selectAll')}
@@ -356,18 +547,15 @@ export default function OrdersSection({ token }: { token: string }) {
                 sx={{
                   border: 1,
                   borderColor: selected.includes(order.id) ? 'primary.main' : 'divider',
-                  borderRadius: 1,
-                  overflow: 'hidden',
+                  borderRadius: 1, overflow: 'hidden',
                 }}
               >
                 <Box
                   onClick={() => setExpanded(expanded === order.id ? null : order.id)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                 >
-                  {/* Checkbox click is stopped from bubbling so it doesn't toggle expansion */}
                   <Checkbox
-                    size="small"
-                    checked={selected.includes(order.id)}
+                    size="small" checked={selected.includes(order.id)}
                     onChange={() => toggleSelect(order.id)}
                     onClick={(e) => e.stopPropagation()}
                     sx={{ p: 0.5 }}
@@ -403,7 +591,84 @@ export default function OrdersSection({ token }: { token: string }) {
         </>
       )}
 
-      {/* Bulk-delete confirmation dialog */}
+      {/* ── Event add / edit dialog ─────────────────────────────────────────── */}
+      <Dialog
+        open={eventDialogOpen}
+        onClose={() => { if (!eventSaving) setEventDialogOpen(false) }}
+        fullWidth maxWidth="xs"
+      >
+        <DialogTitle>
+          {editingEvent ? t('management.orders.editEventTitle') : t('management.orders.addEventTitle')}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label={t('management.orders.eventName')}
+              value={eventName}
+              onChange={(e) => setEventName(e.target.value)}
+              fullWidth autoFocus size="small"
+            />
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <TextField
+                label={t('management.orders.from')} type="date" size="small" value={eventFromDate}
+                onChange={(e) => setEventFromDate(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ flex: 1 }}
+              />
+              <TextField
+                label={t('management.orders.fromTime')} type="time" size="small" value={eventFromTime}
+                onChange={(e) => setEventFromTime(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ width: 120 }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <TextField
+                label={t('management.orders.to')} type="date" size="small" value={eventToDate}
+                onChange={(e) => setEventToDate(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ flex: 1 }}
+              />
+              <TextField
+                label={t('management.orders.toTime')} type="time" size="small" value={eventToTime}
+                onChange={(e) => setEventToTime(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ width: 120 }}
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEventDialogOpen(false)} disabled={eventSaving}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void saveEvent()}
+            disabled={eventSaving || !eventName.trim() || !eventFromDate || !eventToDate}
+          >
+            {eventSaving ? <CircularProgress size={18} color="inherit" /> : t('common.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Event delete confirmation ───────────────────────────────────────── */}
+      <Dialog open={deleteEventOpen} onClose={() => { if (!deletingEvent) setDeleteEventOpen(false) }}>
+        <DialogTitle>{t('management.orders.deleteEventTitle')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('management.orders.deleteEventMessage', {
+              name: events.find((e) => e.id === selectedEventId)?.name ?? '',
+            })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteEventOpen(false)} disabled={deletingEvent}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={() => void confirmDeleteEvent()} color="error" variant="contained" disabled={deletingEvent}>
+            {deletingEvent ? <CircularProgress size={18} color="inherit" /> : t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Bulk-delete orders confirmation ────────────────────────────────── */}
       <Dialog open={deleteOpen} onClose={() => { if (!deleting) setDeleteOpen(false) }}>
         <DialogTitle>{t('management.orders.deleteTitle')}</DialogTitle>
         <DialogContent>
@@ -415,7 +680,7 @@ export default function OrdersSection({ token }: { token: string }) {
           <Button onClick={() => setDeleteOpen(false)} disabled={deleting}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={() => void confirmDelete()} color="error" disabled={deleting} variant="contained">
+          <Button onClick={() => void confirmDelete()} color="error" variant="contained" disabled={deleting}>
             {deleting ? <CircularProgress size={18} color="inherit" /> : t('common.delete')}
           </Button>
         </DialogActions>
