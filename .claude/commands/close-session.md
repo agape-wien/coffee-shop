@@ -36,12 +36,12 @@ Rules:
 - Check off (`[x]`) any tasks completed this session
 - If a task was partially done, add a sub-note explaining what remains
 
-## 5. Update memory
+## 5. Update `CLAUDE.md`
 
-- Read `C:\Users\aonisor\.claude\projects\C--coffee-shop\memory\MEMORY.md` and relevant memory files
-- `project_coffeeshop.md` must stay lean — it is a thin pointer layer, not a state summary. Do NOT copy current phase, file lists, or "what's next" into it — that lives in `docs/TRACKER.md`. Only update it if a genuinely non-obvious architectural fact emerged this session that isn't captured in any project doc.
-- If the user expressed a new preference, gave feedback on your approach, or corrected something, save that as a `feedback` or `user` memory entry.
-- Do not duplicate information already in memory — update in place
+- If a genuinely non-obvious architectural fact emerged this session that isn't captured in any project doc, add it to the relevant section of `CLAUDE.md`.
+- If the user expressed a new preference, gave feedback on your approach, or corrected something — add it as a rule or note in `CLAUDE.md` under an appropriate section.
+- Do not duplicate information already there — update in place.
+- `docs/TRACKER.md` remains the source of truth for current state, active work, and next steps — do not copy that content here.
 
 ## 6. Report back
 
