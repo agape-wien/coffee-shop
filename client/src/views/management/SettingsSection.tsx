@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import InputAdornment from '@mui/material/InputAdornment'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
@@ -15,7 +16,59 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useThemeStore } from '../../stores/themeStore.js'
 import { useMenuDisplayStore } from '../../stores/menuDisplayStore.js'
-import { useFontSizeStore } from '../../stores/fontSizeStore.js'
+import { useFontSizeStore, type FontMode } from '../../stores/fontSizeStore.js'
+
+// Merged number-input + unit-toggle control. The px and % buttons live inside the
+// outlined input border so they appear as one continuous element.
+function FontSizeField({ label, value, mode, disabled, onChange, onModeChange }: {
+  label: string
+  value: string
+  mode: FontMode
+  disabled?: boolean
+  onChange: (v: string) => void
+  onModeChange: (m: FontMode) => void
+}) {
+  const btnSx = (active: boolean) => ({
+    borderRadius: 0,
+    minWidth: 36,
+    height: '100%',
+    px: 0.75,
+    color: active ? 'primary.main' : 'text.secondary',
+    bgcolor: active ? 'action.selected' : 'transparent',
+    fontWeight: active ? 'bold' : 'normal',
+    fontSize: 12,
+    '&:hover': { bgcolor: 'action.hover' },
+  })
+  return (
+    <TextField
+      label={label}
+      type="number"
+      size="small"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      inputProps={{ min: 1, step: 1 }}
+      sx={{
+        width: 220,
+        '& .MuiOutlinedInput-root': { pr: 0 },
+        '& .MuiInputAdornment-root': { height: '100%', maxHeight: 'none', ml: 0 },
+      }}
+      InputProps={{
+        endAdornment: (
+          <InputAdornment position="end">
+            <Button size="small" tabIndex={-1} disabled={disabled} onClick={() => onModeChange('px')} sx={btnSx(mode === 'px')}>
+              px
+            </Button>
+            <Box sx={{ width: '1px', bgcolor: 'divider', alignSelf: 'stretch' }} />
+            <Button size="small" tabIndex={-1} disabled={disabled} onClick={() => onModeChange('vmax')} sx={btnSx(mode === 'vmax')}>
+              %
+            </Button>
+          </InputAdornment>
+        ),
+      }}
+    />
+  )
+}
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -53,10 +106,13 @@ export default function SettingsSection({ token }: { token: string }) {
   const [descSaving, setDescSaving] = useState(false)
   const [compSaving, setCompSaving] = useState(false)
   const [imageSaving, setImageSaving] = useState(false)
-  const { fsPrimary, fsSecondary, fsSmall, setFontSizes } = useFontSizeStore()
+  const { fsPrimary, fsPrimaryMode, fsSecondary, fsSecondaryMode, fsSmall, fsSmallMode, setFontSizes } = useFontSizeStore()
   const [fsPrimaryInput, setFsPrimaryInput] = useState(String(fsPrimary))
+  const [fsPrimaryModeInput, setFsPrimaryModeInput] = useState<FontMode>(fsPrimaryMode)
   const [fsSecondaryInput, setFsSecondaryInput] = useState(String(fsSecondary))
+  const [fsSecondaryModeInput, setFsSecondaryModeInput] = useState<FontMode>(fsSecondaryMode)
   const [fsSmallInput, setFsSmallInput] = useState(String(fsSmall))
+  const [fsSmallModeInput, setFsSmallModeInput] = useState<FontMode>(fsSmallMode)
   const [fontSaving, setFontSaving] = useState(false)
   const [fontSaved, setFontSaved] = useState(false)
   const [fontError, setFontError] = useState('')
@@ -227,7 +283,7 @@ export default function SettingsSection({ token }: { token: string }) {
     const primary = parseInt(fsPrimaryInput, 10)
     const secondary = parseInt(fsSecondaryInput, 10)
     const small = parseInt(fsSmallInput, 10)
-    if ([primary, secondary, small].some((v) => isNaN(v) || v < 8 || v > 120)) {
+    if ([primary, secondary, small].some((v) => isNaN(v) || v < 1 || !Number.isInteger(v))) {
       setFontError(t('management.settings.fontSizeInvalid'))
       return
     }
@@ -238,14 +294,18 @@ export default function SettingsSection({ token }: { token: string }) {
       const res = await fetch('/api/v1/management/settings/font-sizes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fsPrimary: primary, fsSecondary: secondary, fsSmall: small }),
+        body: JSON.stringify({
+          fsPrimary: primary, fsPrimaryMode: fsPrimaryModeInput,
+          fsSecondary: secondary, fsSecondaryMode: fsSecondaryModeInput,
+          fsSmall: small, fsSmallMode: fsSmallModeInput,
+        }),
       })
       if (!res.ok) {
         const json = await res.json() as { error?: string }
         setFontError(json.error ?? t('common.serverError'))
         return
       }
-      setFontSizes(primary, secondary, small)
+      setFontSizes(primary, fsPrimaryModeInput, secondary, fsSecondaryModeInput, small, fsSmallModeInput)
       setFontSaved(true)
     } catch {
       setFontError(t('common.serverError'))
@@ -482,33 +542,30 @@ export default function SettingsSection({ token }: { token: string }) {
       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
         {t('management.settings.fontSizes')}
       </Typography>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end', maxWidth: 480 }}>
-        <TextField
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <FontSizeField
           label={t('management.settings.fontSizePrimary')}
-          type="number"
-          size="small"
           value={fsPrimaryInput}
-          onChange={(e) => { setFsPrimaryInput(e.target.value); setFontSaved(false); setFontError('') }}
-          inputProps={{ min: 8, max: 120 }}
-          sx={{ width: 140 }}
+          mode={fsPrimaryModeInput}
+          disabled={fontSaving}
+          onChange={(v) => { setFsPrimaryInput(v); setFontSaved(false); setFontError('') }}
+          onModeChange={(m) => { setFsPrimaryModeInput(m); setFontSaved(false) }}
         />
-        <TextField
+        <FontSizeField
           label={t('management.settings.fontSizeSecondary')}
-          type="number"
-          size="small"
           value={fsSecondaryInput}
-          onChange={(e) => { setFsSecondaryInput(e.target.value); setFontSaved(false); setFontError('') }}
-          inputProps={{ min: 8, max: 120 }}
-          sx={{ width: 140 }}
+          mode={fsSecondaryModeInput}
+          disabled={fontSaving}
+          onChange={(v) => { setFsSecondaryInput(v); setFontSaved(false); setFontError('') }}
+          onModeChange={(m) => { setFsSecondaryModeInput(m); setFontSaved(false) }}
         />
-        <TextField
+        <FontSizeField
           label={t('management.settings.fontSizeSmall')}
-          type="number"
-          size="small"
           value={fsSmallInput}
-          onChange={(e) => { setFsSmallInput(e.target.value); setFontSaved(false); setFontError('') }}
-          inputProps={{ min: 8, max: 120 }}
-          sx={{ width: 140 }}
+          mode={fsSmallModeInput}
+          disabled={fontSaving}
+          onChange={(v) => { setFsSmallInput(v); setFontSaved(false); setFontError('') }}
+          onModeChange={(m) => { setFsSmallModeInput(m); setFontSaved(false) }}
         />
         <Button
           variant="contained"
@@ -520,8 +577,8 @@ export default function SettingsSection({ token }: { token: string }) {
           {fontSaving ? <CircularProgress size={18} color="inherit" /> : t('common.save')}
         </Button>
       </Box>
-      {fontError && <Alert severity="error" sx={{ mt: 1.5, maxWidth: 480 }}>{fontError}</Alert>}
-      {fontSaved && <Alert severity="success" sx={{ mt: 1.5, maxWidth: 480 }}>{t('management.settings.fontSizesSaved')}</Alert>}
+      {fontError && <Alert severity="error" sx={{ mt: 1.5, maxWidth: 720 }}>{fontError}</Alert>}
+      {fontSaved && <Alert severity="success" sx={{ mt: 1.5, maxWidth: 720 }}>{t('management.settings.fontSizesSaved')}</Alert>}
     </Box>
   )
 }

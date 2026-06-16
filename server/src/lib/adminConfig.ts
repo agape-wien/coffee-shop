@@ -70,8 +70,11 @@ export async function getMenuDisplay(): Promise<{
   showComposition: boolean
   showImage: boolean
   fsPrimary: number
+  fsPrimaryMode: string
   fsSecondary: number
+  fsSecondaryMode: string
   fsSmall: number
+  fsSmallMode: string
 }> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
   return {
@@ -79,8 +82,11 @@ export async function getMenuDisplay(): Promise<{
     showComposition: config?.showComposition ?? true,
     showImage: config?.showImage ?? true,
     fsPrimary: config?.fsPrimary ?? 36,
+    fsPrimaryMode: config?.fsPrimaryMode ?? 'px',
     fsSecondary: config?.fsSecondary ?? 29,
+    fsSecondaryMode: config?.fsSecondaryMode ?? 'px',
     fsSmall: config?.fsSmall ?? 24,
+    fsSmallMode: config?.fsSmallMode ?? 'px',
   }
 }
 
@@ -96,6 +102,13 @@ export async function setShowImage(showImage: boolean): Promise<void> {
   await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { showImage } })
 }
 
-export async function setFontSizes(fsPrimary: number, fsSecondary: number, fsSmall: number): Promise<void> {
-  await prisma.adminConfig.update({ where: { id: SINGLETON_ID }, data: { fsPrimary, fsSecondary, fsSmall } })
+export async function setFontSizes(
+  fsPrimary: number, fsPrimaryMode: string,
+  fsSecondary: number, fsSecondaryMode: string,
+  fsSmall: number, fsSmallMode: string
+): Promise<void> {
+  await prisma.adminConfig.update({
+    where: { id: SINGLETON_ID },
+    data: { fsPrimary, fsPrimaryMode, fsSecondary, fsSecondaryMode, fsSmall, fsSmallMode },
+  })
 }

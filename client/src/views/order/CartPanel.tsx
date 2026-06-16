@@ -431,7 +431,7 @@ function OpenOrdersView({ orders }: { orders: Order[] }) {
                 #{order.number}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: 'var(--fs-secondary)' }}>
-                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
               </Typography>
             </Box>
 

@@ -14,14 +14,16 @@
     "@emotion/styled": "^11.13.5",
     "@mui/icons-material": "^6.4.0",
     "@mui/material": "^6.4.0",
+    "@mui/x-date-pickers": "^7.29.4",
+    "dayjs": "^1.11.21",
     "i18next": "^26.0.10",
     "i18next-browser-languagedetector": "^8.2.1",
+    "qr-code-styling": "^1.6.0-rc.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.7",
     "react-router-dom": "^6.28.0",
     "socket.io-client": "^4.8.1",
-    "qr-code-styling": "^1.6.0-rc.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

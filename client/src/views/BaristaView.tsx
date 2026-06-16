@@ -266,7 +266,7 @@ function OrderCard({ order, onTap }: { order: Order; onTap: (orderId: string) =>
               #{order.number}
             </Typography>
             <Typography color="text.secondary" sx={{ fontSize: 'var(--fs-secondary)' }}>
-              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
             </Typography>
           </Box>
           {coffeeItems.map((item) => (

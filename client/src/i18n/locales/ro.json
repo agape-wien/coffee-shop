@@ -194,11 +194,11 @@
       "showComposition": "Afișați compoziția produsului",
       "showImage": "Afișați imaginea produsului",
       "fontSizes": "Dimensiuni font",
-      "fontSizePrimary": "Primar (px)",
-      "fontSizeSecondary": "Secundar (px)",
-      "fontSizeSmall": "Mic (px)",
+      "fontSizePrimary": "Primar",
+      "fontSizeSecondary": "Secundar",
+      "fontSizeSmall": "Mic",
       "fontSizesSaved": "Dimensiuni font salvate",
-      "fontSizeInvalid": "Fiecare valoare trebuie să fie un număr întreg între 8 și 120"
+      "fontSizeInvalid": "Fiecare valoare trebuie să fie un număr întreg pozitiv"
     }
   }
 }

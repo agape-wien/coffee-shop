@@ -192,11 +192,11 @@
       "showComposition": "Show item composition",
       "showImage": "Show item image",
       "fontSizes": "Font sizes",
-      "fontSizePrimary": "Primary (px)",
-      "fontSizeSecondary": "Secondary (px)",
-      "fontSizeSmall": "Small (px)",
+      "fontSizePrimary": "Primary",
+      "fontSizeSecondary": "Secondary",
+      "fontSizeSmall": "Small",
       "fontSizesSaved": "Font sizes saved",
-      "fontSizeInvalid": "Each value must be an integer between 8 and 120"
+      "fontSizeInvalid": "Each value must be a positive integer"
     }
   }
 }

@@ -192,11 +192,11 @@
       "showComposition": "Zusammensetzung anzeigen",
       "showImage": "Bild anzeigen",
       "fontSizes": "Schriftgrößen",
-      "fontSizePrimary": "Primär (px)",
-      "fontSizeSecondary": "Sekundär (px)",
-      "fontSizeSmall": "Klein (px)",
+      "fontSizePrimary": "Primär",
+      "fontSizeSecondary": "Sekundär",
+      "fontSizeSmall": "Klein",
       "fontSizesSaved": "Schriftgrößen gespeichert",
-      "fontSizeInvalid": "Jeder Wert muss eine ganze Zahl zwischen 8 und 120 sein"
+      "fontSizeInvalid": "Jeder Wert muss eine positive ganze Zahl sein"
     }
   }
 }

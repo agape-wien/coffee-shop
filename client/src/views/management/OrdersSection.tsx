@@ -33,7 +33,12 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import EditIcon from '@mui/icons-material/Edit'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FastfoodIcon from '@mui/icons-material/Fastfood'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker'
+import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker'
+import dayjs from 'dayjs'
 import { apiFetch } from './apiHelper.js'
 
 interface OrderItem {
@@ -133,17 +138,35 @@ function todayString(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-// Formats a stored ISO datetime (UTC) as a human-readable range label.
-// The datetime strings are treated as UTC throughout — the same convention
-// used by the filter inputs (times appended with 'Z').
+// Extracts local-time YYYY-MM-DD and HH:MM from a UTC ISO string.
+// Date-time strings without a timezone designator are parsed as local time by the JS engine,
+// so we use Date methods to pull the local fields rather than slicing the UTC string.
+function isoToLocalParts(iso: string): { date: string; time: string } {
+  const d = new Date(iso)
+  const date = [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return { date, time }
+}
+
+// Constructs a UTC ISO string from local date (YYYY-MM-DD) and time (HH:MM).
+// Omitting the timezone designator makes the JS engine treat the string as local time,
+// so new Date(...).toISOString() correctly converts to UTC for the server query.
+function localPartsToIso(date: string, time: string, endOfMinute = false): string {
+  const suffix = endOfMinute ? ':59.999' : ':00.000'
+  return new Date(`${date}T${time}${suffix}`).toISOString()
+}
+
+// Formats stored UTC event timestamps as a human-readable range in local time.
 function formatEventRange(event: EventRow): string {
-  const from = event.fromTime.slice(0, 16).replace('T', ' ')
-  const to = event.toTime.slice(0, 16).replace('T', ' ')
-  const fromDatePart = from.slice(0, 10)
-  const toDatePart = to.slice(0, 10)
-  return fromDatePart === toDatePart
-    ? `${from} – ${to.slice(11)}`   // same day: "2026-06-15 08:00 – 23:59"
-    : `${from} – ${to}`             // different days: full both sides
+  const { date: fd, time: ft } = isoToLocalParts(event.fromTime)
+  const { date: td, time: tt } = isoToLocalParts(event.toTime)
+  return fd === td
+    ? `${fd} ${ft} – ${tt}`     // same day: "2026-06-15 08:00 – 23:59"
+    : `${fd} ${ft} – ${td} ${tt}` // different days: full both sides
 }
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
@@ -247,8 +270,8 @@ export default function OrdersSection({ token }: { token: string }) {
     setLoading(true)
     setSelected([])
     try {
-      const from = `${fromDate}T${fromTime}:00.000Z`
-      const to = `${toDate}T${toTime}:59.999Z`
+      const from = localPartsToIso(fromDate, fromTime)
+      const to = localPartsToIso(toDate, toTime, true)
       const params = new URLSearchParams({ from, to })
       const res = await apiFetch(token, `/api/v1/management/orders?${params}`)
       const json = await res.json() as { data?: OrderRow[] }
@@ -327,10 +350,12 @@ export default function OrdersSection({ token }: { token: string }) {
     if (!eventId) return
     const ev = events.find((e) => e.id === eventId)
     if (!ev) return
-    setFromDate(ev.fromTime.slice(0, 10))
-    setFromTime(ev.fromTime.slice(11, 16))
-    setToDate(ev.toTime.slice(0, 10))
-    setToTime(ev.toTime.slice(11, 16))
+    const { date: fd, time: ft } = isoToLocalParts(ev.fromTime)
+    const { date: td, time: tt } = isoToLocalParts(ev.toTime)
+    setFromDate(fd)
+    setFromTime(ft)
+    setToDate(td)
+    setToTime(tt)
   }
 
   // Opens the add dialog pre-filled with the current filter values so staff can
@@ -350,10 +375,12 @@ export default function OrdersSection({ token }: { token: string }) {
     if (!ev) return
     setEditingEvent(ev)
     setEventName(ev.name)
-    setEventFromDate(ev.fromTime.slice(0, 10))
-    setEventFromTime(ev.fromTime.slice(11, 16))
-    setEventToDate(ev.toTime.slice(0, 10))
-    setEventToTime(ev.toTime.slice(11, 16))
+    const { date: fd, time: ft } = isoToLocalParts(ev.fromTime)
+    const { date: td, time: tt } = isoToLocalParts(ev.toTime)
+    setEventFromDate(fd)
+    setEventFromTime(ft)
+    setEventToDate(td)
+    setEventToTime(tt)
     setEventDialogOpen(true)
   }
 
@@ -363,8 +390,8 @@ export default function OrdersSection({ token }: { token: string }) {
     try {
       const body = {
         name: eventName.trim(),
-        fromTime: `${eventFromDate}T${eventFromTime}:00.000Z`,
-        toTime: `${eventToDate}T${eventToTime}:59.999Z`,
+        fromTime: localPartsToIso(eventFromDate, eventFromTime),
+        toTime: localPartsToIso(eventToDate, eventToTime, true),
       }
       let savedId = editingEvent?.id ?? ''
       if (editingEvent) {
@@ -409,10 +436,11 @@ export default function OrdersSection({ token }: { token: string }) {
       {/* ── Events row ─────────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1.5, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 240 }}>
-          <InputLabel>{t('management.orders.event')}</InputLabel>
+          <InputLabel shrink>{t('management.orders.event')}</InputLabel>
           <Select
             value={selectedEventId}
             label={t('management.orders.event')}
+            notched
             displayEmpty
             onChange={(e) => applyEvent(String(e.target.value))}
             renderValue={(val) => {
@@ -462,25 +490,33 @@ export default function OrdersSection({ token }: { token: string }) {
       {/* ── Filter toolbar ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6" sx={{ mr: 1 }}>{t('management.orders.title')}</Typography>
-        <TextField
-          label={t('management.orders.from')} type="date" size="small" value={fromDate}
-          onChange={(e) => handleFromDate(e.target.value)}
-          InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
+        <MobileDatePicker
+          label={t('management.orders.from')} format="DD.MM.YYYY"
+          value={dayjs(fromDate)}
+          onChange={(v) => { if (v?.isValid()) handleFromDate(v.format('YYYY-MM-DD')) }}
+          slots={{ openPickerIcon: CalendarTodayIcon }}
+          slotProps={{ textField: { size: 'small', sx: { width: 160 } }, field: { openPickerButtonPosition: 'end' } }}
         />
-        <TextField
-          label={t('management.orders.fromTime')} type="time" size="small" value={fromTime}
-          onChange={(e) => handleFromTime(e.target.value)}
-          InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
+        <MobileTimePicker
+          label={t('management.orders.fromTime')} ampm={false}
+          value={dayjs(`2000-01-01T${fromTime}:00`)}
+          onChange={(v) => { if (v?.isValid()) handleFromTime(v.format('HH:mm')) }}
+          slots={{ openPickerIcon: AccessTimeIcon }}
+          slotProps={{ textField: { size: 'small', sx: { width: 140 } }, field: { openPickerButtonPosition: 'end' } }}
         />
-        <TextField
-          label={t('management.orders.to')} type="date" size="small" value={toDate}
-          onChange={(e) => handleToDate(e.target.value)}
-          InputLabelProps={{ shrink: true }} sx={{ width: 160 }}
+        <MobileDatePicker
+          label={t('management.orders.to')} format="DD.MM.YYYY"
+          value={dayjs(toDate)}
+          onChange={(v) => { if (v?.isValid()) handleToDate(v.format('YYYY-MM-DD')) }}
+          slots={{ openPickerIcon: CalendarTodayIcon }}
+          slotProps={{ textField: { size: 'small', sx: { width: 160 } }, field: { openPickerButtonPosition: 'end' } }}
         />
-        <TextField
-          label={t('management.orders.toTime')} type="time" size="small" value={toTime}
-          onChange={(e) => handleToTime(e.target.value)}
-          InputLabelProps={{ shrink: true }} sx={{ width: 130 }}
+        <MobileTimePicker
+          label={t('management.orders.toTime')} ampm={false}
+          value={dayjs(`2000-01-01T${toTime}:00`)}
+          onChange={(v) => { if (v?.isValid()) handleToTime(v.format('HH:mm')) }}
+          slots={{ openPickerIcon: AccessTimeIcon }}
+          slotProps={{ textField: { size: 'small', sx: { width: 140 } }, field: { openPickerButtonPosition: 'end' } }}
         />
         <Tooltip title={t('management.orders.refresh')}>
           <span>
@@ -489,15 +525,6 @@ export default function OrdersSection({ token }: { token: string }) {
             </IconButton>
           </span>
         </Tooltip>
-        {selected.length > 0 && (
-          <Button
-            variant="outlined" color="error" size="small"
-            startIcon={<DeleteForeverIcon />}
-            onClick={() => setDeleteOpen(true)}
-          >
-            {t('management.orders.deleteSelected', { count: selected.length })}
-          </Button>
-        )}
         {loading && <CircularProgress size={20} />}
       </Box>
 
@@ -529,7 +556,7 @@ export default function OrdersSection({ token }: { token: string }) {
           )}
 
           {orders.length > 0 && !loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, pl: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, pl: 0.5, gap: 1 }}>
               <Checkbox
                 size="small" checked={allSelected} indeterminate={someSelected}
                 onChange={toggleAll} sx={{ p: 0.5 }}
@@ -537,6 +564,15 @@ export default function OrdersSection({ token }: { token: string }) {
               <Typography variant="caption" color="text.secondary">
                 {t('management.orders.selectAll')}
               </Typography>
+              <Button
+                variant="outlined" color="error" size="small"
+                startIcon={<DeleteForeverIcon />}
+                disabled={selected.length === 0}
+                onClick={() => setDeleteOpen(true)}
+                sx={{ ml: 1 }}
+              >
+                {t('management.orders.deleteSelected', { count: selected.length })}
+              </Button>
             </Box>
           )}
 
@@ -570,9 +606,14 @@ export default function OrdersSection({ token }: { token: string }) {
                       <Chip icon={<FastfoodIcon />} label={t(`status.${order.otherStatus}`)} size="small" color={STATUS_COLOR[order.otherStatus] ?? 'default'} />
                     )}
                   </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(order.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </Typography>
+                  </Box>
                 </Box>
 
                 <Collapse in={expanded === order.id}>
@@ -609,27 +650,37 @@ export default function OrdersSection({ token }: { token: string }) {
               fullWidth autoFocus size="small"
             />
             <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <TextField
-                label={t('management.orders.from')} type="date" size="small" value={eventFromDate}
-                onChange={(e) => setEventFromDate(e.target.value)}
-                InputLabelProps={{ shrink: true }} sx={{ flex: 1 }}
+              <MobileDatePicker
+                label={t('management.orders.from')} format="DD.MM.YYYY"
+                value={dayjs(eventFromDate)}
+                onChange={(v) => { if (v?.isValid()) setEventFromDate(v.format('YYYY-MM-DD')) }}
+                slots={{ openPickerIcon: CalendarTodayIcon }}
+                slotProps={{ textField: { size: 'small', fullWidth: true }, field: { openPickerButtonPosition: 'end' } }}
+                sx={{ flex: 1 }}
               />
-              <TextField
-                label={t('management.orders.fromTime')} type="time" size="small" value={eventFromTime}
-                onChange={(e) => setEventFromTime(e.target.value)}
-                InputLabelProps={{ shrink: true }} sx={{ width: 120 }}
+              <MobileTimePicker
+                label={t('management.orders.fromTime')} ampm={false}
+                value={dayjs(`2000-01-01T${eventFromTime}:00`)}
+                onChange={(v) => { if (v?.isValid()) setEventFromTime(v.format('HH:mm')) }}
+                slots={{ openPickerIcon: AccessTimeIcon }}
+                slotProps={{ textField: { size: 'small', sx: { width: 120 } }, field: { openPickerButtonPosition: 'end' } }}
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <TextField
-                label={t('management.orders.to')} type="date" size="small" value={eventToDate}
-                onChange={(e) => setEventToDate(e.target.value)}
-                InputLabelProps={{ shrink: true }} sx={{ flex: 1 }}
+              <MobileDatePicker
+                label={t('management.orders.to')} format="DD.MM.YYYY"
+                value={dayjs(eventToDate)}
+                onChange={(v) => { if (v?.isValid()) setEventToDate(v.format('YYYY-MM-DD')) }}
+                slots={{ openPickerIcon: CalendarTodayIcon }}
+                slotProps={{ textField: { size: 'small', fullWidth: true }, field: { openPickerButtonPosition: 'end' } }}
+                sx={{ flex: 1 }}
               />
-              <TextField
-                label={t('management.orders.toTime')} type="time" size="small" value={eventToTime}
-                onChange={(e) => setEventToTime(e.target.value)}
-                InputLabelProps={{ shrink: true }} sx={{ width: 120 }}
+              <MobileTimePicker
+                label={t('management.orders.toTime')} ampm={false}
+                value={dayjs(`2000-01-01T${eventToTime}:00`)}
+                onChange={(v) => { if (v?.isValid()) setEventToTime(v.format('HH:mm')) }}
+                slots={{ openPickerIcon: AccessTimeIcon }}
+                slotProps={{ textField: { size: 'small', sx: { width: 120 } }, field: { openPickerButtonPosition: 'end' } }}
               />
             </Box>
           </Box>

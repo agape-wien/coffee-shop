@@ -7,8 +7,8 @@
 
 ## Current status
 
-**Phase:** Production feedback — items 1–10 done, items 11–13 queued  
-**Last updated:** 2026-06-15  
+**Phase:** Production feedback — items 1–10 done + polish pass done, items 11–13 queued  
+**Last updated:** 2026-06-16  
 **Active work:** Nothing in progress — session closed cleanly.
 
 ---
@@ -347,6 +347,58 @@ Named time windows stored in the database, selectable as a one-click filter pres
 **Future extensions (not urgent):**
 - **Tables per event** — record which tables were occupied during each event
 - **Category breakdown per event** — aggregate beverage categories ordered per event for stock planning
+
+---
+
+## Polish pass — 2026-06-16
+
+Fixes and improvements applied after first real-use sessions.
+
+### Manual documentation ✅
+- `docs/manual/01-ordering.md` — notes interaction updated to Dialog pattern (tap item name → dialog with Save/Cancel)
+- `docs/manual/04-pickup.md` — badge letter table (EN: C/O, DE: K/A, RO: C/A) added; counter always C/O note
+- `docs/manual/05-management.md` — Events subsection, time filter fields, collapsible summary, bulk delete, pickup language, font sizes section, 9 new tester rows
+- `docs/manual/06-cross-cutting.md` — badge letter section corrected to reflect pickup language setting
+
+### Date display in management orders list ✅
+- Order rows show two-row datetime: date on top (DD.MM.YYYY), time below (HH:mm 24h), German locale format
+- `hour12: false` applied to all `toLocaleTimeString` calls across `BaristaView`, `CounterView`, `CartPanel`, `OrdersSection`
+
+### Bulk delete FK fix ✅
+- `DELETE /api/v1/management/orders` was silently failing — `OrderItem.orderId` FK has no cascade delete
+- Fixed with `prisma.$transaction([deleteMany(orderItems), deleteMany(orders)])` — items deleted first
+
+### Event dropdown label overlap fix ✅
+- `displayEmpty` + `renderValue` that always returns a value prevented MUI from auto-shrinking the label
+- Fixed with `<InputLabel shrink>` + `notched` on the Select
+
+### Time input 24-hour format ✅
+- All four `type="time"` TextFields in `OrdersSection` (order filter + event dialog) replaced with `TimeField format="HH:mm"` from `@mui/x-date-pickers@^7`
+- `dayjs` added as required date adapter peer dependency
+- `LocalizationProvider` + `AdapterDayjs` wrapper added in `App.tsx`
+- Note: `@mui/x-date-pickers` is a separate MUI X package (not bundled in `@mui/material`); v7 required because project uses MUI v6
+
+### Timezone fix in order filter ✅
+- Old filter constructed `T${time}:00.000Z` (treated input as UTC) → queries shifted by TZ offset
+- Added `isoToLocalParts(iso)` and `localPartsToIso(date, time, endOfMinute?)` helpers
+- `localPartsToIso` uses `new Date(\`\${date}T\${time}:00\`)` (no Z suffix) so JS interprets it as local time before converting to UTC via `.toISOString()`
+- Applied at all 5 datetime construction/parse points in `OrdersSection`
+
+### Time filter field width ✅
+- `sx={{ width: 130 }}` → `sx={{ width: 140 }}` on filter time fields (text was clipped)
+
+### Delete button always visible ✅
+- "Delete (N)" button moved next to select-all checkbox, always rendered; `disabled` when selection empty instead of conditionally rendered
+
+### Font size px/vmax mode toggle ✅
+- 3 new DB columns: `fsPrimaryMode`, `fsSecondaryMode`, `fsSmallMode` (`String @default("px")`)
+- Migration: `server/prisma/migrations/20260616000000_add_font_size_modes/`
+- CSS value applied as `${value}${mode}` (e.g. `36px` or `5vmax`); "%" in UI maps to CSS `vmax` unit (1% of `max(viewport width, viewport height)`)
+- `FontSizeField` component in `SettingsSection`: merged TextField with px/% toggle buttons inside the border via `InputAdornment`
+- `FontMode` type (`'px' | 'vmax'`) exported from `fontSizeStore.ts`
+- Validation changed from `v < 8 || v > 120` to `v < 1 || !Number.isInteger(v)` to accommodate vmax values (which can legitimately be < 8)
+
+---
 
 ### 11. Per-device settings (font size, language, dark/light mode)
 - Each device gets a random UUID stored in localStorage on first visit (`deviceId`). This identifies the device without any login.

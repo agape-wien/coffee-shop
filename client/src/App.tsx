@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import CssBaseline from '@mui/material/CssBaseline'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from './stores/themeStore.js'
@@ -60,11 +62,24 @@ function MenuDisplaySync() {
   useEffect(() => {
     fetch('/api/v1/auth/menu-display')
       .then((r) => r.json())
-      .then((json: { data?: { showDescription: boolean; showComposition: boolean; showImage: boolean; fsPrimary: number; fsSecondary: number; fsSmall: number } }) => {
-        if (typeof json.data?.showDescription === 'boolean') setShowDescription(json.data.showDescription)
-        if (typeof json.data?.showComposition === 'boolean') setShowComposition(json.data.showComposition)
-        if (typeof json.data?.showImage === 'boolean') setShowImage(json.data.showImage)
-        if (typeof json.data?.fsPrimary === 'number') setFontSizes(json.data.fsPrimary, json.data.fsSecondary, json.data.fsSmall)
+      .then((json: { data?: {
+        showDescription: boolean; showComposition: boolean; showImage: boolean
+        fsPrimary: number; fsPrimaryMode: string
+        fsSecondary: number; fsSecondaryMode: string
+        fsSmall: number; fsSmallMode: string
+      } }) => {
+        const d = json.data
+        if (!d) return
+        if (typeof d.showDescription === 'boolean') setShowDescription(d.showDescription)
+        if (typeof d.showComposition === 'boolean') setShowComposition(d.showComposition)
+        if (typeof d.showImage === 'boolean') setShowImage(d.showImage)
+        if (typeof d.fsPrimary === 'number') {
+          setFontSizes(
+            d.fsPrimary, (d.fsPrimaryMode === 'vmax' ? 'vmax' : 'px'),
+            d.fsSecondary, (d.fsSecondaryMode === 'vmax' ? 'vmax' : 'px'),
+            d.fsSmall, (d.fsSmallMode === 'vmax' ? 'vmax' : 'px'),
+          )
+        }
       })
       .catch(() => {})
   }, [setShowDescription, setShowComposition, setShowImage, setFontSizes])
@@ -76,6 +91,7 @@ export default function App() {
   const theme = useMemo(() => createTheme({ palette: { mode: darkMode ? 'dark' : 'light' } }), [darkMode])
 
   return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <LanguageSync />
@@ -92,5 +108,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
+    </LocalizationProvider>
   )
 }

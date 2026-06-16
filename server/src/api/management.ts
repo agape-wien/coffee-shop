@@ -418,8 +418,9 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
   })
 
-  // Hard-deletes the supplied orders. Does not adjust the daily counter — issued order
-  // numbers are never reused regardless of whether the order record is deleted.
+  // Hard-deletes the supplied orders. OrderItems must be deleted first — no cascade is defined
+  // on the FK, so deleting Order rows directly would hit a foreign key constraint error.
+  // Does not adjust the daily counter — issued order numbers are never reused.
   router.delete('/orders', async (req, res) => {
     const result = BulkDeleteOrdersSchema.safeParse(req.body)
     if (!result.success) {
@@ -427,8 +428,12 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
       return
     }
     try {
-      await prisma.order.deleteMany({ where: { id: { in: result.data.ids } } })
-      res.json({ data: { deleted: result.data.ids.length } })
+      const ids = result.data.ids
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany({ where: { orderId: { in: ids } } }),
+        prisma.order.deleteMany({ where: { id: { in: ids } } }),
+      ])
+      res.json({ data: { deleted: ids.length } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })
     }
@@ -629,21 +634,24 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
   })
 
   const FontSizesSchema = z.object({
-    fsPrimary: z.number().int().min(8).max(120),
-    fsSecondary: z.number().int().min(8).max(120),
-    fsSmall: z.number().int().min(8).max(120),
+    fsPrimary: z.number().int().min(1).max(500),
+    fsPrimaryMode: z.enum(['px', 'vmax']),
+    fsSecondary: z.number().int().min(1).max(500),
+    fsSecondaryMode: z.enum(['px', 'vmax']),
+    fsSmall: z.number().int().min(1).max(500),
+    fsSmallMode: z.enum(['px', 'vmax']),
   })
 
-  // Saves all three font sizes in one write to avoid partial-update states.
+  // Saves all three font sizes and their units in one write to avoid partial-update states.
   router.put('/settings/font-sizes', async (req, res) => {
     const result = FontSizesSchema.safeParse(req.body)
     if (!result.success) {
-      res.status(400).json({ error: 'Each font size must be an integer between 8 and 120 (px)', code: 'VALIDATION_ERROR' })
+      res.status(400).json({ error: 'Each font size must be a positive integer; mode must be "px" or "vmax"', code: 'VALIDATION_ERROR' })
       return
     }
     try {
-      const { fsPrimary, fsSecondary, fsSmall } = result.data
-      await setFontSizes(fsPrimary, fsSecondary, fsSmall)
+      const { fsPrimary, fsPrimaryMode, fsSecondary, fsSecondaryMode, fsSmall, fsSmallMode } = result.data
+      await setFontSizes(fsPrimary, fsPrimaryMode, fsSecondary, fsSecondaryMode, fsSmall, fsSmallMode)
       res.json({ data: { ok: true } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })

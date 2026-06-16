@@ -31,8 +31,11 @@ model AdminConfig {
   // Applied at runtime via document.documentElement.style.setProperty on all views.
   // Defaults match the current hardcoded CSS values (2.25rem / 1.8rem / 1.5rem @ 16px base).
   fsPrimary       Int     @default(36)
+  fsPrimaryMode   String  @default("px")
   fsSecondary     Int     @default(29)
+  fsSecondaryMode String  @default("px")
   fsSmall         Int     @default(24)
+  fsSmallMode     String  @default("px")
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
