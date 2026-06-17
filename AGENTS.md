@@ -132,9 +132,9 @@ Global design tokens live in `client/src/index.css` as CSS custom properties at 
 **MUI X date/time pickers** (`@mui/x-date-pickers@^7`) are used in `OrdersSection.tsx` for the order filter and event dialog. Key facts:
 - This is a *separate* npm package from `@mui/material` — same vendor, independent release.
 - v7 is pinned because the project uses MUI v6; MUI X v9 requires MUI v7+.
-- `MobileTimePicker` / `MobileDatePicker` do not render an open-picker icon button by default on mobile (the whole field is tappable). To show the icon: `slotProps={{ field: { openPickerButtonPosition: 'end' } }}`.
+- Use `DesktopDatePicker` / `DesktopTimePicker` (not the Mobile variants) — Mobile variants never render an icon button at all; the entire field is the touch target by design and `openPickerButtonPosition` is silently ignored. Desktop variants always show the icon and open a popper, which is appropriate for the management screen.
 - Size and width go through `slotProps.textField`, not directly on the component: `slotProps={{ textField: { size: 'small', sx: { width: 140 } } }}`.
-- 24h format: `ampm={false}` on `MobileTimePicker`. Date display format: `format="DD.MM.YYYY"` on `MobileDatePicker`.
+- 24h format: `ampm={false}` on `DesktopTimePicker`. Date display format: `format="DD.MM.YYYY"` on `DesktopDatePicker`.
 - `LocalizationProvider` + `AdapterDayjs` wraps the entire app in `App.tsx`.
 
 Dark mode is implemented via:

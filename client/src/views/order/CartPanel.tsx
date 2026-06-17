@@ -139,11 +139,17 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
       )
     }
 
+    const handleRemoved = ({ orderId }: { orderId: string }) => {
+      setOpenOrders((prev) => prev.filter((o) => o.id !== orderId))
+    }
+
     socket.on('order:placed', handlePlaced)
     socket.on('order:updated', handleUpdated)
+    socket.on('order:removed', handleRemoved)
     return () => {
       socket.off('order:placed', handlePlaced)
       socket.off('order:updated', handleUpdated)
+      socket.off('order:removed', handleRemoved)
     }
   }, [tableId])
 

@@ -1,26 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find \"C:\\\\\\\\coffee-shop\" -type f ! -path \"*/.git/*\" ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" ! -path \"*/.turbo/*\")",
-      "Bash(ls -la \"C:\\\\\\\\coffee-shop\")",
-      "Bash(ls -la \"C:\\\\\\\\coffee-shop/docs\")",
-      "Bash(ls -la \"C:\\\\\\\\coffee-shop/.claude\")",
-      "Bash(find \"C:\\\\\\\\coffee-shop\" -maxdepth 7 -type d)",
       "Bash(docker compose *)",
-      "Bash(curl -s -X POST http://localhost:3001/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{\\\\\"password\\\\\":\\\\\"admin\\\\\"}\")",
-      "Bash(python -m json.tool)",
-      "Bash(curl -s http://localhost:3001/api/v1/management/categories -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzgxOTcyMzAsImV4cCI6MTc3ODI4MzYzMH0.Gb_7e4qsD8-P-8sBu4NRBYOX14hytrV6xJaoI812_Ck')",
-      "Bash(curl -s http://localhost:3001/api/v1/management/tables -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzgxOTcyMzAsImV4cCI6MTc3ODI4MzYzMH0.Gb_7e4qsD8-P-8sBu4NRBYOX14hytrV6xJaoI812_Ck')",
-      "Bash(curl -s http://localhost:3001/api/v1/management/categories)",
-      "Bash(curl -s http://localhost:3001/management -o /dev/null -w \"HTTP %{http_code}\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Login OK' if 'data' in d else d\\)\")",
-      "Bash(Get-ChildItem -Path \"C:\\\\coffee-shop\\\\client\\\\src\\\\views\" -Recurse -Filter \"*.tsx\")",
       "Bash(Select-Object FullName)",
       "Bash(findstr i18 *)",
-      "Bash(ls /mnt/c/coffee-shop/node_modules | grep i18)",
-      "Bash(npm run *)",
-      "Bash(curl -s http://localhost:3001/api/v1/auth/dark-mode)",
-      "Bash(curl -s -X PUT http://localhost:3001/api/v1/management/settings/dark-mode -H \"Content-Type: application/json\" -d '{\"darkMode\":true}')"
+      "Bash(npm run *)"
     ]
   }
 }

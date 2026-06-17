@@ -16,9 +16,11 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
 import FormControl from '@mui/material/FormControl'
@@ -96,6 +98,11 @@ export default function MenuSection({ token }: { token: string }) {
   const [imageUploading, setImageUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // ── Confirm dialog ──
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean; message: string; onConfirm: () => void; actionLabel: string; error: string; loading: boolean
+  }>({ open: false, message: '', onConfirm: () => {}, actionLabel: '', error: '', loading: false })
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -144,15 +151,24 @@ export default function MenuSection({ token }: { token: string }) {
     void load()
   }
 
-  const deleteCategory = async (cat: Category) => {
-    if (!confirm(t('management.menu.deleteCategoryConfirm', { name: cat.name }))) return
-    const res = await apiFetch(token, `/api/v1/management/categories/${cat.id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      const json = await res.json() as { error?: string }
-      alert(json.error ?? t('management.menu.deleteFailed'))
-      return
-    }
-    void load()
+  const deleteCategory = (cat: Category) => {
+    setConfirmDialog({
+      open: true,
+      message: t('management.menu.deleteCategoryConfirm', { name: cat.name }),
+      actionLabel: t('common.delete'),
+      error: '',
+      loading: false,
+      onConfirm: async () => {
+        const res = await apiFetch(token, `/api/v1/management/categories/${cat.id}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const json = await res.json() as { error?: string }
+          setConfirmDialog(d => ({ ...d, loading: false, error: json.error ?? t('management.menu.deleteFailed') }))
+          return
+        }
+        setConfirmDialog(d => ({ ...d, open: false }))
+        void load()
+      },
+    })
   }
 
   // ── Item actions ──
@@ -242,10 +258,19 @@ export default function MenuSection({ token }: { token: string }) {
     void load()
   }
 
-  const deleteItem = async (item: Item) => {
-    if (!confirm(t('management.menu.deleteItemConfirm', { name: item.name }))) return
-    await apiFetch(token, `/api/v1/management/items/${item.id}`, { method: 'DELETE' })
-    void load()
+  const deleteItem = (item: Item) => {
+    setConfirmDialog({
+      open: true,
+      message: t('management.menu.deleteItemConfirm', { name: item.name }),
+      actionLabel: t('common.delete'),
+      error: '',
+      loading: false,
+      onConfirm: async () => {
+        await apiFetch(token, `/api/v1/management/items/${item.id}`, { method: 'DELETE' })
+        setConfirmDialog(d => ({ ...d, open: false }))
+        void load()
+      },
+    })
   }
 
   if (loading && categories.length === 0) {
@@ -273,6 +298,7 @@ export default function MenuSection({ token }: { token: string }) {
             </Box>
             <Box sx={{ display: 'flex', gap: 1, mr: 1 }} onClick={(e) => e.stopPropagation()}>
               <Button
+                component="div"
                 size="small"
                 color={cat.paused ? 'success' : 'warning'}
                 variant={cat.paused ? 'contained' : 'outlined'}
@@ -280,8 +306,8 @@ export default function MenuSection({ token }: { token: string }) {
               >
                 {cat.paused ? t('management.menu.resumeCategory') : t('management.menu.pauseCategory')}
               </Button>
-              <Button size="small" onClick={() => openEditCategory(cat)}>{t('common.edit')}</Button>
-              <Button size="small" color="error" onClick={() => void deleteCategory(cat)}>{t('common.delete')}</Button>
+              <Button component="div" size="small" onClick={() => openEditCategory(cat)}>{t('common.edit')}</Button>
+              <Button component="div" size="small" color="error" onClick={() => void deleteCategory(cat)}>{t('common.delete')}</Button>
             </Box>
           </AccordionSummary>
 
@@ -331,7 +357,7 @@ export default function MenuSection({ token }: { token: string }) {
       )}
 
       {/* Category dialog */}
-      <Dialog open={catDialog.open} onClose={() => setCatDialog({ open: false, editing: null })} fullWidth maxWidth="xs">
+      <Dialog open={catDialog.open} onClose={() => setCatDialog({ open: false, editing: null })} disableRestoreFocus fullWidth maxWidth="xs">
         <DialogTitle>{catDialog.editing ? t('management.menu.editCategory') : t('management.menu.addCategoryTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField
@@ -351,7 +377,7 @@ export default function MenuSection({ token }: { token: string }) {
       </Dialog>
 
       {/* Item dialog */}
-      <Dialog open={itemDialog.open} onClose={() => setItemDialog({ open: false, editing: null, categoryId: '' })} fullWidth maxWidth="sm">
+      <Dialog open={itemDialog.open} onClose={() => setItemDialog({ open: false, editing: null, categoryId: '' })} disableRestoreFocus fullWidth maxWidth="sm">
         <DialogTitle>{itemDialog.editing ? t('management.menu.editItem') : t('management.menu.addItemTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label={t('management.menu.name')} value={itemForm.name} onChange={(e) => setItemForm(f => ({ ...f, name: e.target.value }))} fullWidth size="small" autoFocus />
@@ -473,6 +499,36 @@ export default function MenuSection({ token }: { token: string }) {
         <DialogActions>
           <Button onClick={() => setItemDialog({ open: false, editing: null, categoryId: '' })}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => void saveItem()} disabled={!itemForm.name.trim() || !itemForm.categoryId}>{t('common.save')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Generic confirm dialog ───────────────────────────────────────────── */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => { if (!confirmDialog.loading) setConfirmDialog(d => ({ ...d, open: false })) }}
+        disableRestoreFocus
+      >
+        <DialogContent>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
+          {confirmDialog.error && <Alert severity="error" sx={{ mt: 1 }}>{confirmDialog.error}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmDialog(d => ({ ...d, open: false }))}
+            disabled={confirmDialog.loading}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            color="error" variant="contained"
+            disabled={confirmDialog.loading}
+            onClick={() => {
+              setConfirmDialog(d => ({ ...d, loading: true, error: '' }))
+              void confirmDialog.onConfirm()
+            }}
+          >
+            {confirmDialog.loading ? <CircularProgress size={18} color="inherit" /> : confirmDialog.actionLabel}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -101,12 +101,18 @@ export default function BaristaView() {
       })
     }
 
+    const handleRemoved = ({ orderId }: { orderId: string }) => {
+      setOrders((prev) => prev.filter((o) => o.id !== orderId))
+    }
+
     socket.on('order:placed', handlePlaced)
     socket.on('order:updated', handleUpdated)
+    socket.on('order:removed', handleRemoved)
     return () => {
       socket.off('connect', joinRooms)
       socket.off('order:placed', handlePlaced)
       socket.off('order:updated', handleUpdated)
+      socket.off('order:removed', handleRemoved)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

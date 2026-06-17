@@ -36,8 +36,8 @@ import FastfoodIcon from '@mui/icons-material/Fastfood'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker'
-import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker'
+import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker'
+import { DesktopTimePicker } from '@mui/x-date-pickers/DesktopTimePicker'
 import dayjs from 'dayjs'
 import { apiFetch } from './apiHelper.js'
 
@@ -490,33 +490,33 @@ export default function OrdersSection({ token }: { token: string }) {
       {/* ── Filter toolbar ─────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6" sx={{ mr: 1 }}>{t('management.orders.title')}</Typography>
-        <MobileDatePicker
+        <DesktopDatePicker
           label={t('management.orders.from')} format="DD.MM.YYYY"
           value={dayjs(fromDate)}
           onChange={(v) => { if (v?.isValid()) handleFromDate(v.format('YYYY-MM-DD')) }}
           slots={{ openPickerIcon: CalendarTodayIcon }}
-          slotProps={{ textField: { size: 'small', sx: { width: 160 } }, field: { openPickerButtonPosition: 'end' } }}
+          slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
         />
-        <MobileTimePicker
+        <DesktopTimePicker
           label={t('management.orders.fromTime')} ampm={false}
           value={dayjs(`2000-01-01T${fromTime}:00`)}
           onChange={(v) => { if (v?.isValid()) handleFromTime(v.format('HH:mm')) }}
           slots={{ openPickerIcon: AccessTimeIcon }}
-          slotProps={{ textField: { size: 'small', sx: { width: 140 } }, field: { openPickerButtonPosition: 'end' } }}
+          slotProps={{ textField: { size: 'small', sx: { width: 140 } } }}
         />
-        <MobileDatePicker
+        <DesktopDatePicker
           label={t('management.orders.to')} format="DD.MM.YYYY"
           value={dayjs(toDate)}
           onChange={(v) => { if (v?.isValid()) handleToDate(v.format('YYYY-MM-DD')) }}
           slots={{ openPickerIcon: CalendarTodayIcon }}
-          slotProps={{ textField: { size: 'small', sx: { width: 160 } }, field: { openPickerButtonPosition: 'end' } }}
+          slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
         />
-        <MobileTimePicker
+        <DesktopTimePicker
           label={t('management.orders.toTime')} ampm={false}
           value={dayjs(`2000-01-01T${toTime}:00`)}
           onChange={(v) => { if (v?.isValid()) handleToTime(v.format('HH:mm')) }}
           slots={{ openPickerIcon: AccessTimeIcon }}
-          slotProps={{ textField: { size: 'small', sx: { width: 140 } }, field: { openPickerButtonPosition: 'end' } }}
+          slotProps={{ textField: { size: 'small', sx: { width: 140 } } }}
         />
         <Tooltip title={t('management.orders.refresh')}>
           <span>
@@ -636,6 +636,7 @@ export default function OrdersSection({ token }: { token: string }) {
       <Dialog
         open={eventDialogOpen}
         onClose={() => { if (!eventSaving) setEventDialogOpen(false) }}
+        disableRestoreFocus
         fullWidth maxWidth="xs"
       >
         <DialogTitle>
@@ -650,37 +651,37 @@ export default function OrdersSection({ token }: { token: string }) {
               fullWidth autoFocus size="small"
             />
             <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <MobileDatePicker
+              <DesktopDatePicker
                 label={t('management.orders.from')} format="DD.MM.YYYY"
                 value={dayjs(eventFromDate)}
                 onChange={(v) => { if (v?.isValid()) setEventFromDate(v.format('YYYY-MM-DD')) }}
                 slots={{ openPickerIcon: CalendarTodayIcon }}
-                slotProps={{ textField: { size: 'small', fullWidth: true }, field: { openPickerButtonPosition: 'end' } }}
+                slotProps={{ textField: { size: 'small', fullWidth: true } }}
                 sx={{ flex: 1 }}
               />
-              <MobileTimePicker
+              <DesktopTimePicker
                 label={t('management.orders.fromTime')} ampm={false}
                 value={dayjs(`2000-01-01T${eventFromTime}:00`)}
                 onChange={(v) => { if (v?.isValid()) setEventFromTime(v.format('HH:mm')) }}
                 slots={{ openPickerIcon: AccessTimeIcon }}
-                slotProps={{ textField: { size: 'small', sx: { width: 120 } }, field: { openPickerButtonPosition: 'end' } }}
+                slotProps={{ textField: { size: 'small', sx: { width: 120 } } }}
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <MobileDatePicker
+              <DesktopDatePicker
                 label={t('management.orders.to')} format="DD.MM.YYYY"
                 value={dayjs(eventToDate)}
                 onChange={(v) => { if (v?.isValid()) setEventToDate(v.format('YYYY-MM-DD')) }}
                 slots={{ openPickerIcon: CalendarTodayIcon }}
-                slotProps={{ textField: { size: 'small', fullWidth: true }, field: { openPickerButtonPosition: 'end' } }}
+                slotProps={{ textField: { size: 'small', fullWidth: true } }}
                 sx={{ flex: 1 }}
               />
-              <MobileTimePicker
+              <DesktopTimePicker
                 label={t('management.orders.toTime')} ampm={false}
                 value={dayjs(`2000-01-01T${eventToTime}:00`)}
                 onChange={(v) => { if (v?.isValid()) setEventToTime(v.format('HH:mm')) }}
                 slots={{ openPickerIcon: AccessTimeIcon }}
-                slotProps={{ textField: { size: 'small', sx: { width: 120 } }, field: { openPickerButtonPosition: 'end' } }}
+                slotProps={{ textField: { size: 'small', sx: { width: 120 } } }}
               />
             </Box>
           </Box>
@@ -700,7 +701,7 @@ export default function OrdersSection({ token }: { token: string }) {
       </Dialog>
 
       {/* ── Event delete confirmation ───────────────────────────────────────── */}
-      <Dialog open={deleteEventOpen} onClose={() => { if (!deletingEvent) setDeleteEventOpen(false) }}>
+      <Dialog open={deleteEventOpen} onClose={() => { if (!deletingEvent) setDeleteEventOpen(false) }} disableRestoreFocus>
         <DialogTitle>{t('management.orders.deleteEventTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -720,7 +721,7 @@ export default function OrdersSection({ token }: { token: string }) {
       </Dialog>
 
       {/* ── Bulk-delete orders confirmation ────────────────────────────────── */}
-      <Dialog open={deleteOpen} onClose={() => { if (!deleting) setDeleteOpen(false) }}>
+      <Dialog open={deleteOpen} onClose={() => { if (!deleting) setDeleteOpen(false) }} disableRestoreFocus>
         <DialogTitle>{t('management.orders.deleteTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>

@@ -351,7 +351,8 @@ export default function SettingsSection({ token }: { token: string }) {
       <Divider sx={{ mb: 3 }} />
 
       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>{t('management.settings.changePassword')}</Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400 }}>
+      <Box component="form" onSubmit={(e) => { e.preventDefault(); void submit() }} sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400 }}>
+        <input type="text" autoComplete="username" value="admin" readOnly style={{ display: 'none' }} />
         <TextField
           label={t('management.settings.currentPassword')}
           type="password"
@@ -385,8 +386,8 @@ export default function SettingsSection({ token }: { token: string }) {
         {success && <Alert severity="success">{t('management.settings.successMessage')}</Alert>}
 
         <Button
+          type="submit"
           variant="contained"
-          onClick={() => void submit()}
           disabled={!canSubmit}
           sx={{ alignSelf: 'flex-start' }}
         >

@@ -421,6 +421,8 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
   // Hard-deletes the supplied orders. OrderItems must be deleted first — no cascade is defined
   // on the FK, so deleting Order rows directly would hit a foreign key constraint error.
   // Does not adjust the daily counter — issued order numbers are never reused.
+  // Emits order:removed to kitchen, display, and each affected table:{id} room so all live
+  // views (barista, counter, pickup, order view) drop the deleted orders without a manual refresh.
   router.delete('/orders', async (req, res) => {
     const result = BulkDeleteOrdersSchema.safeParse(req.body)
     if (!result.success) {
@@ -429,10 +431,17 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
     }
     try {
       const ids = result.data.ids
+      const affected = await prisma.order.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, tableId: true },
+      })
       await prisma.$transaction([
         prisma.orderItem.deleteMany({ where: { orderId: { in: ids } } }),
         prisma.order.deleteMany({ where: { id: { in: ids } } }),
       ])
+      for (const { id: orderId, tableId } of affected) {
+        io.to('kitchen').to('display').to(`table:${tableId}`).emit('order:removed', { orderId })
+      }
       res.json({ data: { deleted: ids.length } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })

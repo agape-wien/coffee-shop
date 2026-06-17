@@ -7,9 +7,11 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -37,6 +39,9 @@ export default function TablesSection({ token }: { token: string }) {
   const [saving, setSaving] = useState(false)
   const [qrTable, setQrTable] = useState<QrDialogTable | null>(null)
   const [qrBaseUrl, setQrBaseUrl] = useState('')
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean; message: string; onConfirm: () => void; actionLabel: string; error: string; loading: boolean
+  }>({ open: false, message: '', onConfirm: () => {}, actionLabel: '', error: '', loading: false })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -83,24 +88,38 @@ export default function TablesSection({ token }: { token: string }) {
     }
   }
 
-  const deleteTable = async (table: TableRow) => {
-    const msg = table.label
+  const deleteTable = (table: TableRow) => {
+    const message = table.label
       ? t('management.tables.deleteConfirmLabel', { number: table.number, label: table.label })
       : t('management.tables.deleteConfirm', { number: table.number })
-    if (!confirm(msg)) return
-    const res = await apiFetch(token, `/api/v1/management/tables/${table.id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      const json = await res.json() as { error?: string }
-      alert(json.error ?? t('management.tables.deleteFailed'))
-      return
-    }
-    void load()
+    setConfirmDialog({
+      open: true, message, actionLabel: t('common.delete'), error: '', loading: false,
+      onConfirm: async () => {
+        const res = await apiFetch(token, `/api/v1/management/tables/${table.id}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const json = await res.json() as { error?: string }
+          setConfirmDialog(d => ({ ...d, loading: false, error: json.error ?? t('management.tables.deleteFailed') }))
+          return
+        }
+        setConfirmDialog(d => ({ ...d, open: false }))
+        void load()
+      },
+    })
   }
 
-  const rotateQr = async (table: TableRow) => {
-    if (!confirm(t('management.tables.rotateConfirm', { number: table.number }))) return
-    await apiFetch(token, `/api/v1/management/tables/${table.id}/rotate-qr`, { method: 'POST' })
-    void load()
+  const rotateQr = (table: TableRow) => {
+    setConfirmDialog({
+      open: true,
+      message: t('management.tables.rotateConfirm', { number: table.number }),
+      actionLabel: t('management.tables.newQrCode'),
+      error: '',
+      loading: false,
+      onConfirm: async () => {
+        await apiFetch(token, `/api/v1/management/tables/${table.id}/rotate-qr`, { method: 'POST' })
+        setConfirmDialog(d => ({ ...d, open: false }))
+        void load()
+      },
+    })
   }
 
   if (loading && tables.length === 0) {
@@ -153,7 +172,7 @@ export default function TablesSection({ token }: { token: string }) {
 
       <QrDialog open={qrTable !== null} onClose={() => setQrTable(null)} table={qrTable} baseUrl={qrBaseUrl} />
 
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} disableRestoreFocus fullWidth maxWidth="xs">
         <DialogTitle>{t('management.tables.addTitle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField
@@ -176,6 +195,36 @@ export default function TablesSection({ token }: { token: string }) {
             disabled={saving || !newNumber || parseInt(newNumber, 10) < 1}
           >
             {t('common.add')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Generic confirm dialog ───────────────────────────────────────────── */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => { if (!confirmDialog.loading) setConfirmDialog(d => ({ ...d, open: false })) }}
+        disableRestoreFocus
+      >
+        <DialogContent>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
+          {confirmDialog.error && <Alert severity="error" sx={{ mt: 1 }}>{confirmDialog.error}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmDialog(d => ({ ...d, open: false }))}
+            disabled={confirmDialog.loading}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            color="error" variant="contained"
+            disabled={confirmDialog.loading}
+            onClick={() => {
+              setConfirmDialog(d => ({ ...d, loading: true, error: '' }))
+              void confirmDialog.onConfirm()
+            }}
+          >
+            {confirmDialog.loading ? <CircularProgress size={18} color="inherit" /> : confirmDialog.actionLabel}
           </Button>
         </DialogActions>
       </Dialog>

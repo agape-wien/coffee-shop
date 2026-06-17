@@ -147,7 +147,7 @@ export default function QrDialog({ open, onClose, table, baseUrl }: Props) {
     : ''
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} disableRestoreFocus maxWidth="xs" fullWidth>
       <DialogTitle>{t('management.tables.qrDialog.title')} — {tableName}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
