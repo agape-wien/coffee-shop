@@ -129,6 +129,14 @@ The line to avoid: don't write a *what* comment that just restates the function 
 ## Styling architecture
 Global design tokens live in `client/src/index.css` as CSS custom properties at `:root`. Currently defined: `--fs-primary`, `--fs-secondary`, `--fs-small` for the three font size tiers.
 
+**MUI X date/time pickers** (`@mui/x-date-pickers@^7`) are used in `OrdersSection.tsx` for the order filter and event dialog. Key facts:
+- This is a *separate* npm package from `@mui/material` — same vendor, independent release.
+- v7 is pinned because the project uses MUI v6; MUI X v9 requires MUI v7+.
+- `MobileTimePicker` / `MobileDatePicker` do not render an open-picker icon button by default on mobile (the whole field is tappable). To show the icon: `slotProps={{ field: { openPickerButtonPosition: 'end' } }}`.
+- Size and width go through `slotProps.textField`, not directly on the component: `slotProps={{ textField: { size: 'small', sx: { width: 140 } } }}`.
+- 24h format: `ampm={false}` on `MobileTimePicker`. Date display format: `format="DD.MM.YYYY"` on `MobileDatePicker`.
+- `LocalizationProvider` + `AdapterDayjs` wraps the entire app in `App.tsx`.
+
 Dark mode is implemented via:
 - MUI `ThemeProvider` in `App.tsx` — handles MUI component colors
 - `[data-theme="dark"]` block in `index.css` — extension point for custom CSS variable overrides
@@ -145,6 +153,8 @@ docker compose up -d
 Vite runs as Express middleware (`middlewareMode: true`) inside the server process — there is no separate frontend container or port. This was a deliberate architecture change after the initial scaffold.
 
 **After `prisma db push`, restart the server container** (`docker compose restart server`). `tsx watch` hot-reload caches the Prisma client module and does not reload native modules on file changes. Without a restart, new schema columns return `undefined` and silently fall through to their defaults (e.g. `darkMode` always reads `false`).
+
+**After `npm install` adds new packages to `client/`, rebuild the server image** (`docker compose build server && docker compose up -d server`). Vite runs inside the server container, so `node_modules` in the image must include any new client packages — `npm install` on the host alone is not enough.
 
 ## Collaboration rules
 This project is also a learning exercise. That changes how feedback works:

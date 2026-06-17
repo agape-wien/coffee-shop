@@ -8,14 +8,18 @@
 ## Current status
 
 **Phase:** Production feedback — items 1–10 done + polish pass done, items 11–13 queued  
-**Last updated:** 2026-06-16  
+**Last updated:** 2026-06-17  
 **Active work:** Nothing in progress — session closed cleanly.
+
+**Needs verification next session:** MobileTimePicker / MobileDatePicker icon buttons in the management Orders filter and event dialog — the `openPickerButtonPosition: 'end'` fix was applied but not confirmed visible before session ended.
 
 ---
 
 ## Next up
 
-Work through the remaining production feedback items in order. Each is independent; no blockers between them.
+Work through these in order. Each is independent; no blockers between them.
+
+0. **Verify picker icons** — Open Management → Orders tab. Confirm the calendar icon appears on the two date fields and the clock icon appears on the two time fields. If icons are still missing, check whether `field: { openPickerButtonPosition: 'end' }` in `slotProps` is being accepted by the installed version of `@mui/x-date-pickers@^7`, and whether `slots={{ openPickerIcon: ... }}` is being applied. Same check for the event dialog.
 
 1. **Item 11 — Per-device settings** (new `DeviceConfig` DB table + `PUT /api/v1/device-config/:deviceId`)
    Depends on item 9 (font sizes in DB). UUID in localStorage identifies device. Settings modal (top-left button on every view) for font size, language, dark mode. Device values win over AdminConfig global defaults. Pickup language excluded from per-device override.
@@ -372,11 +376,13 @@ Fixes and improvements applied after first real-use sessions.
 - `displayEmpty` + `renderValue` that always returns a value prevented MUI from auto-shrinking the label
 - Fixed with `<InputLabel shrink>` + `notched` on the Select
 
-### Time input 24-hour format ✅
-- All four `type="time"` TextFields in `OrdersSection` (order filter + event dialog) replaced with `TimeField format="HH:mm"` from `@mui/x-date-pickers@^7`
-- `dayjs` added as required date adapter peer dependency
-- `LocalizationProvider` + `AdapterDayjs` wrapper added in `App.tsx`
-- Note: `@mui/x-date-pickers` is a separate MUI X package (not bundled in `@mui/material`); v7 required because project uses MUI v6
+### Time and date picker upgrade ✅ (icon verification pending)
+- `@mui/x-date-pickers@^7` and `dayjs` added to `client/`; `LocalizationProvider` + `AdapterDayjs` wrapper added in `App.tsx`
+- Note: `@mui/x-date-pickers` is a separate MUI X package — not bundled in `@mui/material`. After `npm install`, **`docker compose build server` is required** so the container picks up the new packages.
+- All four `type="time"` TextFields in `OrdersSection` replaced with `MobileTimePicker` (`ampm={false}` for 24h format)
+- All four `type="date"` TextFields replaced with `MobileDatePicker` (`format="DD.MM.YYYY"` matches German locale used in order list)
+- `MobileTimePicker` / `MobileDatePicker` do not render the open-picker icon button by default — the entire field is the tap target on mobile. To force the icon to appear: `slotProps={{ field: { openPickerButtonPosition: 'end' } }}`. Icon component supplied via `slots={{ openPickerIcon: AccessTimeIcon }}` / `slots={{ openPickerIcon: CalendarTodayIcon }}` (both from `@mui/icons-material`, already in the project)
+- Icon visibility was not confirmed after the last fix — see "Needs verification" in Current status above
 
 ### Timezone fix in order filter ✅
 - Old filter constructed `T${time}:00.000Z` (treated input as UTC) → queries shifted by TZ offset
