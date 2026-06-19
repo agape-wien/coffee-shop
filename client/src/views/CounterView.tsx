@@ -85,31 +85,16 @@ export default function CounterView() {
     joinRooms()
     socket.on('connect', joinRooms)
 
-    const handlePlaced = (order: Order) => {
-      if (isRelevant(order)) setOrders((prev) => [...prev, order])
+    const handleSnapshot = (incoming: Order[]) => {
+      setOrders(incoming.filter(isRelevant))
     }
 
-    const handleUpdated = (order: Order) => {
-      const relevant = isRelevant(order)
-      setOrders((prev) => {
-        const exists = prev.some((o) => o.id === order.id)
-        if (!relevant) return exists ? prev.filter((o) => o.id !== order.id) : prev
-        return exists ? prev.map((o) => (o.id === order.id ? order : o)) : [...prev, order]
-      })
-    }
-
-    const handleRemoved = ({ orderId }: { orderId: string }) => {
-      setOrders((prev) => prev.filter((o) => o.id !== orderId))
-    }
-
-    socket.on('order:placed', handlePlaced)
-    socket.on('order:updated', handleUpdated)
-    socket.on('order:removed', handleRemoved)
+    socket.on('kitchen:snapshot', handleSnapshot)
     return () => {
       socket.off('connect', joinRooms)
-      socket.off('order:placed', handlePlaced)
-      socket.off('order:updated', handleUpdated)
-      socket.off('order:removed', handleRemoved)
+      socket.off('kitchen:snapshot', handleSnapshot)
+      socket.emit('view:leave', { room: 'kitchen' })
+      socket.emit('view:leave', { room: 'display' })
     }
   }, [])
 

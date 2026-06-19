@@ -143,7 +143,9 @@ Manually changing any filter field after selecting an event clears the event sel
 
 - **From / To date pickers:** Defaults to the current day (today → today). Adjust to view historical data.
 - **From time / To time:** Time inputs paired with the date pickers. Default to `00:00` and `23:59`. Use these to filter within a specific time window on the selected dates — useful for events that ran only part of a day.
-- **Refresh button:** Re-fetches orders with the current filter. Use this after placing test orders to see them appear.
+- **Refresh button:** Re-fetches orders with the current filter. Use this after placing test orders to see them appear. Disabled when the range is invalid.
+
+If the "To" date/time is not later than "From", a red validation message appears below the filter row and the order list is not updated until the range is corrected. The refresh button is also disabled while the range is invalid.
 
 The endpoint returns a maximum of 200 orders per query.
 

@@ -12,9 +12,8 @@ export function initSocket(httpServer: HttpServer): Server<ClientToServerEvents,
     // view:join is the entry point for all named rooms.
     // Kitchen, barista, display, and management screens call this on mount.
     // Customer devices join order:{id} after an order is placed.
-    socket.on('view:join', ({ room }) => {
-      socket.join(room)
-    })
+    socket.on('view:join', ({ room }) => { socket.join(room) })
+    socket.on('view:leave', ({ room }: { room: string }) => { socket.leave(room) })
     registerOrderHandlers(io, socket)
   })
 

@@ -70,6 +70,40 @@ async function getNextOrderNumber(): Promise<number> {
 // Read-only preview of what the next auto-assigned number would be.
 // Does NOT increment the counter — two concurrent previews will return the same number.
 // That is acceptable: number is display-only, UUID is the real PK.
+const ACTIVE_STATUSES = ['PENDING', 'IN_PROGRESS', 'DONE'] as const
+
+// All orders with at least one active part — the superset that serves barista, counter, and pickup.
+// Each view filters client-side for its own slice.
+export async function getKitchenSnapshot(): Promise<Order[]> {
+  const orders = await prisma.order.findMany({
+    where: {
+      OR: [
+        { coffeeStatus: { in: [...ACTIVE_STATUSES] } },
+        { otherStatus: { in: [...ACTIVE_STATUSES] } },
+      ],
+    },
+    include: ITEM_INCLUDE,
+    orderBy: { createdAt: 'asc' },
+  })
+  return orders.map(mapToResponse)
+}
+
+// Open orders for one table — the full set CartPanel needs to render the Open tab.
+export async function getTableSnapshot(tableId: string): Promise<Order[]> {
+  const orders = await prisma.order.findMany({
+    where: {
+      tableId,
+      OR: [
+        { coffeeStatus: { in: [...ACTIVE_STATUSES] } },
+        { otherStatus: { in: [...ACTIVE_STATUSES] } },
+      ],
+    },
+    include: ITEM_INCLUDE,
+    orderBy: { createdAt: 'asc' },
+  })
+  return orders.map(mapToResponse)
+}
+
 export async function peekNextNumber(): Promise<number> {
   const today = new Date().toISOString().slice(0, 10)
   const counter = await prisma.dailyCounter.findUnique({ where: { date: today } })

@@ -1,10 +1,28 @@
 # Coffee Shop Ordering App
 
-Real-time ordering system for a coffee shop. Customers order via kiosk or mobile (QR code at table). Baristas see live queues. Staff manage the menu via an admin panel.
+Real-time ordering system replacing a paper-ticket workflow for a physical coffee shop with a 4-person team (prep person, barista, counter person, servers). Customers order via kiosk at the bar or by scanning a QR code at their table. Staff see live queues on role-specific screens. A pickup display shows ready order numbers.
 
 **Tech stack:** React + TypeScript + Vite · Node.js + Express · Socket.io · PostgreSQL + Prisma · Docker
 
-For architecture decisions and coding conventions see `CLAUDE.md` and `docs/`.
+## Who it's for
+
+A specific coffee shop with a real 4-person paper-ticket workflow. The screen design maps directly to that operation — decisions that look unusual almost always have a real-world operational reason behind them.
+
+## Goals
+
+- Replace paper-ticket chaos with a real-time digital queue
+- Staff can place and track orders from any screen without navigating
+- Customers at tables get live status on their phones via QR
+- Management can update the menu, configure settings, and review order history without a developer
+
+## Key constraints
+
+- Runs on a local network over plain HTTP — not HTTPS, not internet-facing
+- No payment processing
+- Single admin credential (v1)
+- Deployed on a Linux server at `/opt/coffee-shop` via Docker Compose
+
+For architecture decisions and coding conventions see `AGENTS.md` and `docs/`.
 
 ---
 

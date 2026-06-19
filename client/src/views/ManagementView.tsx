@@ -66,17 +66,18 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <Box sx={{ width: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box component="form" onSubmit={(e) => { e.preventDefault(); void submit() }} sx={{ width: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography variant="h5" fontWeight="bold" textAlign="center">{t('management.title')}</Typography>
+        <input type="text" autoComplete="username" value="admin" readOnly style={{ display: 'none' }} />
         <TextField
           label={t('management.password')} type="password" value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') void submit() }}
+          autoComplete="current-password"
           error={!!error} helperText={error} autoFocus fullWidth
         />
         <Button
-          variant="contained" size="large" fullWidth
-          onClick={() => void submit()} disabled={loading || !password}
+          type="submit" variant="contained" size="large" fullWidth
+          disabled={loading || !password}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : t('management.signIn')}
         </Button>

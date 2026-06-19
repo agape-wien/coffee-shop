@@ -166,7 +166,8 @@
       "editEventTitle": "Edit event",
       "eventName": "Event name",
       "deleteEventTitle": "Delete event",
-      "deleteEventMessage": "Delete \"{{name}}\"? Orders are not affected."
+      "deleteEventMessage": "Delete \"{{name}}\"? Orders are not affected.",
+      "rangeInvalid": "\"To\" must be later than \"From\"."
     },
     "settings": {
       "title": "Settings",

@@ -76,24 +76,14 @@ export default function PickupView() {
     const socket = getSocket()
     socket.emit('view:join', { room: 'display' })
 
-    const handleUpdated = (order: Order) => {
-      const hasDone = order.coffeeStatus === 'DONE' || order.otherStatus === 'DONE'
-      setOrders((prev) => {
-        const exists = prev.some((o) => o.id === order.id)
-        if (!hasDone) return exists ? prev.filter((o) => o.id !== order.id) : prev
-        return exists ? prev.map((o) => (o.id === order.id ? order : o)) : [...prev, order]
-      })
+    const handleSnapshot = (incoming: Order[]) => {
+      setOrders(incoming.filter((o) => o.coffeeStatus === 'DONE' || o.otherStatus === 'DONE'))
     }
 
-    const handleRemoved = ({ orderId }: { orderId: string }) => {
-      setOrders((prev) => prev.filter((o) => o.id !== orderId))
-    }
-
-    socket.on('order:updated', handleUpdated)
-    socket.on('order:removed', handleRemoved)
+    socket.on('kitchen:snapshot', handleSnapshot)
     return () => {
-      socket.off('order:updated', handleUpdated)
-      socket.off('order:removed', handleRemoved)
+      socket.off('kitchen:snapshot', handleSnapshot)
+      socket.emit('view:leave', { room: 'display' })
     }
   }, [])
 

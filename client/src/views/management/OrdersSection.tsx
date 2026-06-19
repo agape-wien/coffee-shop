@@ -267,11 +267,12 @@ export default function OrdersSection({ token }: { token: string }) {
   // ── Load orders ───────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
+    const from = localPartsToIso(fromDate, fromTime)
+    const to = localPartsToIso(toDate, toTime, true)
+    if (to <= from) return
     setLoading(true)
     setSelected([])
     try {
-      const from = localPartsToIso(fromDate, fromTime)
-      const to = localPartsToIso(toDate, toTime, true)
       const params = new URLSearchParams({ from, to })
       const res = await apiFetch(token, `/api/v1/management/orders?${params}`)
       const json = await res.json() as { data?: OrderRow[] }
@@ -429,6 +430,10 @@ export default function OrdersSection({ token }: { token: string }) {
     }
   }
 
+  // Derived inline (no useMemo) — it's a cheap comparison of two short strings computed from
+  // four primitive state values; the optimization cost would exceed any benefit.
+  const rangeInvalid = localPartsToIso(toDate, toTime, true) <= localPartsToIso(fromDate, fromTime)
+
   const summary = computeSummary(orders)
 
   return (
@@ -443,6 +448,7 @@ export default function OrdersSection({ token }: { token: string }) {
             notched
             displayEmpty
             onChange={(e) => applyEvent(String(e.target.value))}
+            MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }} // blur before aria-hidden batch flush — see MenuSection for full explanation
             renderValue={(val) => {
               if (!val) return <em style={{ fontStyle: 'normal', color: 'inherit' }}>{t('management.orders.noEvent')}</em>
               const ev = events.find((e) => e.id === val)
@@ -520,13 +526,18 @@ export default function OrdersSection({ token }: { token: string }) {
         />
         <Tooltip title={t('management.orders.refresh')}>
           <span>
-            <IconButton size="small" onClick={() => void load()} disabled={loading}>
+            <IconButton size="small" onClick={() => void load()} disabled={loading || rangeInvalid}>
               <RefreshIcon />
             </IconButton>
           </span>
         </Tooltip>
         {loading && <CircularProgress size={20} />}
       </Box>
+      {rangeInvalid && (
+        <Typography color="error" variant="caption" sx={{ mb: 1.5, display: 'block' }}>
+          {t('management.orders.rangeInvalid')}
+        </Typography>
+      )}
 
       {orders.length === 0 && !loading ? (
         <Typography color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>

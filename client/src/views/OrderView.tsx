@@ -26,7 +26,10 @@ export default function OrderView() {
     const socket = getSocket()
     socket.emit('view:join', { room: 'management' })
     socket.on('menu:updated', setSnapshot)
-    return () => { socket.off('menu:updated', setSnapshot) }
+    return () => {
+      socket.off('menu:updated', setSnapshot)
+      socket.emit('view:leave', { room: 'management' })
+    }
   }, [setSnapshot])
 
   // QR mode: lock the store's tableId to the resolved table

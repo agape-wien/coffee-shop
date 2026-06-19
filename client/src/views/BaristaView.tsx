@@ -86,33 +86,20 @@ export default function BaristaView() {
     joinRooms()
     socket.on('connect', joinRooms)
 
-    const handlePlaced = (order: Order) => {
-      if (order.coffeeStatus !== 'PENDING') return
-      setOrders((prev) => [...prev, order])
-      if (soundEnabledRef.current) playBeep()
-    }
-
-    const handleUpdated = (order: Order) => {
-      const active = order.coffeeStatus === 'PENDING' || order.coffeeStatus === 'IN_PROGRESS'
+    const handleSnapshot = (incoming: Order[]) => {
+      const active = incoming.filter((o) => o.coffeeStatus === 'PENDING' || o.coffeeStatus === 'IN_PROGRESS')
       setOrders((prev) => {
-        if (!active) return prev.filter((o) => o.id !== order.id)
-        const exists = prev.some((o) => o.id === order.id)
-        return exists ? prev.map((o) => (o.id === order.id ? order : o)) : prev
+        if (active.some((o) => !prev.some((p) => p.id === o.id)) && soundEnabledRef.current) playBeep()
+        return active
       })
     }
 
-    const handleRemoved = ({ orderId }: { orderId: string }) => {
-      setOrders((prev) => prev.filter((o) => o.id !== orderId))
-    }
-
-    socket.on('order:placed', handlePlaced)
-    socket.on('order:updated', handleUpdated)
-    socket.on('order:removed', handleRemoved)
+    socket.on('kitchen:snapshot', handleSnapshot)
     return () => {
       socket.off('connect', joinRooms)
-      socket.off('order:placed', handlePlaced)
-      socket.off('order:updated', handleUpdated)
-      socket.off('order:removed', handleRemoved)
+      socket.off('kitchen:snapshot', handleSnapshot)
+      // Leave the room on unmount so the server stops sending kitchen snapshots to this client.
+      socket.emit('view:leave', { room: 'kitchen' })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

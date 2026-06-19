@@ -445,14 +445,15 @@ export default function MenuSection({ token }: { token: string }) {
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>{t('management.menu.type')}</InputLabel>
-              <Select value={itemForm.type} label={t('management.menu.type')} onChange={(e) => setItemForm(f => ({ ...f, type: e.target.value as 'COFFEE' | 'OTHER' }))}>
+              {/* onClose blurs before React's batched state flush applies aria-hidden to the portal, preventing the "Blocked aria-hidden on a focused element" warning */}
+              <Select value={itemForm.type} label={t('management.menu.type')} onChange={(e) => setItemForm(f => ({ ...f, type: e.target.value as 'COFFEE' | 'OTHER' }))} MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }}>
                 <MenuItem value="COFFEE">{t('common.coffee')}</MenuItem>
                 <MenuItem value="OTHER">{t('common.other')}</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>{t('management.menu.category')}</InputLabel>
-              <Select value={itemForm.categoryId} label={t('management.menu.category')} onChange={(e) => setItemForm(f => ({ ...f, categoryId: e.target.value }))}>
+              <Select value={itemForm.categoryId} label={t('management.menu.category')} onChange={(e) => setItemForm(f => ({ ...f, categoryId: e.target.value }))} MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }}>
                 {categories.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
               </Select>
             </FormControl>

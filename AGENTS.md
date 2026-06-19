@@ -88,7 +88,7 @@ When staff type a custom number before placing (for paper block changes mid-shif
 The primary daily workflow is staff at the bar kiosk. Table/QR mode (`isTokenMode`) is built but secondary. The order number field and table picker are hidden in token mode because they make no sense on a customer self-order screen.
 
 ## Socket.io conventions
-- Event names: `domain:action` — e.g. `order:placed`, `order:status_updated`
+- Event names: `domain:action` — e.g. `kitchen:snapshot`, `order:updated`
 - Rooms: `kitchen`, `display`, `management`, `order:{orderId}`
 - Never emit directly to individual sockets for business events — use rooms
 - Full event schema: see `docs/ARCHITECTURE.md`

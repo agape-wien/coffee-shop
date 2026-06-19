@@ -18,6 +18,7 @@ import multer from 'multer'
 import type { Server as IoServer } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents, MenuSnapshot } from '@coffee/shared'
 import prisma from '../lib/prisma.js'
+import * as orderService from '../services/order.service.js'
 import { requireAuth } from '../middleware/auth.js'
 import { setLanguage, setPickupLanguage, getQrBaseUrl, setQrBaseUrl, setDarkMode, setShowDescription, setShowComposition, setShowImage, setFontSizes } from '../lib/adminConfig.js'
 
@@ -433,15 +434,21 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
       const ids = result.data.ids
       const affected = await prisma.order.findMany({
         where: { id: { in: ids } },
-        select: { id: true, tableId: true },
+        select: { tableId: true },
       })
       await prisma.$transaction([
         prisma.orderItem.deleteMany({ where: { orderId: { in: ids } } }),
         prisma.order.deleteMany({ where: { id: { in: ids } } }),
       ])
-      for (const { id: orderId, tableId } of affected) {
-        io.to('kitchen').to('display').to(`table:${tableId}`).emit('order:removed', { orderId })
-      }
+      const uniqueTableIds = [...new Set(affected.map((o) => o.tableId))]
+      const [kitchenSnap, ...tableSnaps] = await Promise.all([
+        orderService.getKitchenSnapshot(),
+        ...uniqueTableIds.map((tableId) => orderService.getTableSnapshot(tableId)),
+      ])
+      io.to('kitchen').to('display').emit('kitchen:snapshot', kitchenSnap)
+      uniqueTableIds.forEach((tableId, i) => {
+        io.to(`table:${tableId}`).emit('table:snapshot', tableSnaps[i])
+      })
       res.json({ data: { deleted: ids.length } })
     } catch {
       res.status(500).json({ error: 'Internal error', code: 'DB_ERROR' })

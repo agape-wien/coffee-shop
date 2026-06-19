@@ -168,7 +168,8 @@
       "editEventTitle": "Editați evenimentul",
       "eventName": "Numele evenimentului",
       "deleteEventTitle": "Ștergeți evenimentul",
-      "deleteEventMessage": "Ștergeți \"{{name}}\"? Comenzile nu sunt afectate."
+      "deleteEventMessage": "Ștergeți \"{{name}}\"? Comenzile nu sunt afectate.",
+      "rangeInvalid": "Data finală trebuie să fie după data inițială."
     },
     "settings": {
       "title": "Setări",

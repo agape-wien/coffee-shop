@@ -41,9 +41,13 @@ export function createOrdersRouter(io: IoServer<ClientToServerEvents, ServerToCl
     }
     try {
       const order = await orderService.placeOrder(result.data)
-      io.to('kitchen').emit('order:placed', order)
-      io.to(`table:${order.tableId}`).emit('order:placed', order)
-      io.to(`order:${order.id}`).emit('order:placed', order)
+      const [kitchenSnap, tableSnap] = await Promise.all([
+        orderService.getKitchenSnapshot(),
+        orderService.getTableSnapshot(order.tableId),
+      ])
+      io.to('kitchen').to('display').emit('kitchen:snapshot', kitchenSnap)
+      io.to(`table:${order.tableId}`).emit('table:snapshot', tableSnap)
+      io.to(`order:${order.id}`).emit('order:updated', order)
       res.status(201).json({ data: order })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'

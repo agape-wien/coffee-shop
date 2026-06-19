@@ -174,7 +174,7 @@ export default function TablesSection({ token }: { token: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} disableRestoreFocus fullWidth maxWidth="xs">
         <DialogTitle>{t('management.tables.addTitle')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 3 }}>
           <TextField
             label={t('management.tables.numberLabel')} type="number" value={newNumber}
             onChange={(e) => setNewNumber(e.target.value)}

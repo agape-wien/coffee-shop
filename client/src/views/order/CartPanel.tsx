@@ -123,33 +123,16 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
     const room = `table:${tableId}`
     socket.emit('view:join', { room })
 
-    const handlePlaced = (order: Order) => {
-      if (order.tableId === tableId) {
-        setOpenOrders((prev) => [...prev, order])
-      }
+    const handleSnapshot = (orders: Order[]) => {
+      setOpenOrders(orders)
     }
 
-    const handleUpdated = (order: Order) => {
-      if (order.tableId !== tableId) return
-      const settled = isSettled(order)
-      setOpenOrders((prev) =>
-        settled
-          ? prev.filter((o) => o.id !== order.id)
-          : prev.map((o) => o.id === order.id ? order : o)
-      )
-    }
-
-    const handleRemoved = ({ orderId }: { orderId: string }) => {
-      setOpenOrders((prev) => prev.filter((o) => o.id !== orderId))
-    }
-
-    socket.on('order:placed', handlePlaced)
-    socket.on('order:updated', handleUpdated)
-    socket.on('order:removed', handleRemoved)
+    socket.on('table:snapshot', handleSnapshot)
     return () => {
-      socket.off('order:placed', handlePlaced)
-      socket.off('order:updated', handleUpdated)
-      socket.off('order:removed', handleRemoved)
+      socket.off('table:snapshot', handleSnapshot)
+      // Leave the room so the server stops sending snapshots to this client — without this
+      // the SPA keeps the room membership across table changes and receives stale snapshots.
+      socket.emit('view:leave', { room })
     }
   }, [tableId])
 
@@ -172,6 +155,7 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
               value={tableId}
               label={t('order.tableLabel')}
               onChange={(e) => setTableId(e.target.value as string)}
+              MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }} // blur before aria-hidden batch flush — see MenuSection for full explanation
               sx={{ fontSize: 'var(--fs-secondary)' }}
             >
               {tables.map((tbl) => (
@@ -228,13 +212,6 @@ export default function CartPanel({ tableFromToken, isTokenMode }: Props) {
       </Box>
     </Box>
   )
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isSettled(order: Order): boolean {
-  const terminal = (s: Order['coffeeStatus']) => s == null || s === 'PICKED_UP' || s === 'CANCELLED'
-  return terminal(order.coffeeStatus) && terminal(order.otherStatus)
 }
 
 // ─── Cart view ────────────────────────────────────────────────────────────────

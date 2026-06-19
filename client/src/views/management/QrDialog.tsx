@@ -166,6 +166,7 @@ export default function QrDialog({ open, onClose, table, baseUrl }: Props) {
               value={dotShape}
               label={t('management.tables.qrDialog.dotShape')}
               onChange={(e) => setDotShape(e.target.value as DotType)}
+              MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }} // blur before aria-hidden batch flush — see MenuSection for full explanation
             >
               {DOT_SHAPES.map((s) => (
                 <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
@@ -252,6 +253,7 @@ export default function QrDialog({ open, onClose, table, baseUrl }: Props) {
                 value={cornerSquare}
                 label={t('management.tables.qrDialog.cornerSquare')}
                 onChange={(e) => setCornerSquare(e.target.value as CornerSquareType)}
+                MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }}
               >
                 {CORNER_SQUARE_SHAPES.map((s) => (
                   <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
@@ -264,6 +266,7 @@ export default function QrDialog({ open, onClose, table, baseUrl }: Props) {
                 value={cornerDot}
                 label={t('management.tables.qrDialog.cornerDot')}
                 onChange={(e) => setCornerDot(e.target.value as CornerDotType)}
+                MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }}
               >
                 {CORNER_DOT_SHAPES.map((s) => (
                   <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>

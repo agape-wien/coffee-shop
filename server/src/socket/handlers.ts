@@ -4,7 +4,7 @@
 // failed transitions (e.g. wrong precondition) are silently dropped — the
 // clients are always the source of user intent, not acknowledgement listeners.
 import type { Server, Socket } from 'socket.io'
-import type { ServerToClientEvents, ClientToServerEvents } from '@coffee/shared'
+import type { ServerToClientEvents, ClientToServerEvents, Order } from '@coffee/shared'
 import { z } from 'zod'
 import * as orderService from '../services/order.service.js'
 
@@ -20,15 +20,23 @@ const OrderCancelSchema = z.object({
   orderId: z.string().cuid(),
 })
 
+async function emitSnapshots(io: IoServer, tableId: string, orderId: string, order: Order): Promise<void> {
+  const [kitchenSnap, tableSnap] = await Promise.all([
+    orderService.getKitchenSnapshot(),
+    orderService.getTableSnapshot(tableId),
+  ])
+  io.to('kitchen').to('display').emit('kitchen:snapshot', kitchenSnap)
+  io.to(`table:${tableId}`).emit('table:snapshot', tableSnap)
+  io.to(`order:${orderId}`).emit('order:updated', order)
+}
+
 export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
   socket.on('order:part:start', async (payload) => {
     const r = OrderPartSchema.safeParse(payload)
     if (!r.success) return
     const order = await orderService.startPart(r.data.orderId, r.data.part)
     if (!order) return
-    io.to('kitchen').emit('order:updated', order)
-    io.to(`table:${order.tableId}`).emit('order:updated', order)
-    io.to(`order:${order.id}`).emit('order:updated', order)
+    await emitSnapshots(io, order.tableId, order.id, order)
   })
 
   socket.on('order:part:done', async (payload) => {
@@ -36,10 +44,7 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     if (!r.success) return
     const order = await orderService.donePart(r.data.orderId, r.data.part)
     if (!order) return
-    io.to('kitchen').emit('order:updated', order)
-    io.to('display').emit('order:updated', order)
-    io.to(`table:${order.tableId}`).emit('order:updated', order)
-    io.to(`order:${order.id}`).emit('order:updated', order)
+    await emitSnapshots(io, order.tableId, order.id, order)
   })
 
   socket.on('order:part:picked_up', async (payload) => {
@@ -47,17 +52,7 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     if (!r.success) return
     const order = await orderService.pickedUpPart(r.data.orderId, r.data.part)
     if (!order) return
-    io.to('kitchen').emit('order:updated', order)
-    io.to(`table:${order.tableId}`).emit('order:updated', order)
-    io.to(`order:${order.id}`).emit('order:updated', order)
-    // Only remove the order from the display entirely when neither part is DONE.
-    // If one part was just picked up but the other is still DONE, send order:updated
-    // so the display can remove only the collected badge while keeping the other visible.
-    if (order.coffeeStatus !== 'DONE' && order.otherStatus !== 'DONE') {
-      io.to('display').emit('order:removed', { orderId: order.id })
-    } else {
-      io.to('display').emit('order:updated', order)
-    }
+    await emitSnapshots(io, order.tableId, order.id, order)
   })
 
   socket.on('order:cancel', async (payload) => {
@@ -65,9 +60,6 @@ export function registerOrderHandlers(io: IoServer, socket: IoSocket): void {
     if (!r.success) return
     const order = await orderService.cancelOrder(r.data.orderId)
     if (!order) return
-    io.to('kitchen').emit('order:updated', order)
-    io.to(`table:${order.tableId}`).emit('order:updated', order)
-    io.to(`order:${order.id}`).emit('order:updated', order)
-    io.to('display').emit('order:removed', { orderId: order.id })
+    await emitSnapshots(io, order.tableId, order.id, order)
   })
 }

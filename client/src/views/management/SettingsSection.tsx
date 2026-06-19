@@ -408,6 +408,7 @@ export default function SettingsSection({ token }: { token: string }) {
             label={t('management.settings.language')}
             onChange={(e) => void saveLanguage(e.target.value)}
             disabled={langSaving}
+            MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }} // blur before aria-hidden batch flush — see MenuSection for full explanation
           >
             {LANGUAGES.map((l) => (
               <MenuItem key={l.code} value={l.code}>{l.label}</MenuItem>
@@ -430,6 +431,7 @@ export default function SettingsSection({ token }: { token: string }) {
               label={t('management.settings.pickupLanguage')}
               onChange={(e) => void savePickupLanguage(e.target.value)}
               disabled={pickupLangSaving}
+              MenuProps={{ onClose: () => { (document.activeElement as HTMLElement)?.blur() } }}
             >
               {LANGUAGES.map((l) => (
                 <MenuItem key={l.code} value={l.code}>{l.label}</MenuItem>
@@ -449,23 +451,23 @@ export default function SettingsSection({ token }: { token: string }) {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {t('management.settings.qrBaseUrlHint')}
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, maxWidth: 400 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1.5, maxWidth: 400 }}>
         <TextField
           size="small"
-          fullWidth
+          sx={{ flex: 1 }}
           placeholder="http://192.168.1.100:3001"
           value={qrBaseUrl}
           onChange={(e) => { setQrBaseUrl(e.target.value); setQrUrlSuccess(false); setQrUrlError('') }}
           onKeyDown={(e) => { if (e.key === 'Enter') void saveQrBaseUrl() }}
           error={!!qrUrlError}
-          helperText={qrUrlError || ''}
+          helperText={qrUrlError}
         />
         <Button
           variant="contained"
           size="small"
           onClick={() => void saveQrBaseUrl()}
           disabled={qrUrlSaving}
-          sx={{ whiteSpace: 'nowrap', mt: 0.125 }}
+          sx={{ whiteSpace: 'nowrap', mb: 0.125 }}
         >
           {qrUrlSaving ? <CircularProgress size={18} color="inherit" /> : t('common.save')}
         </Button>
