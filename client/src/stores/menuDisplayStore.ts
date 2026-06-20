@@ -2,6 +2,7 @@
 // localStorage is read at module load (fast, no flash), DB is authoritative and
 // overrides via MenuDisplaySync in App.tsx on first render.
 import { create } from 'zustand'
+import { ADMIN_CONFIG_DEFAULTS } from '@coffee/shared'
 
 interface MenuDisplayState {
   showDescription: boolean
@@ -17,9 +18,9 @@ const storedComp = localStorage.getItem('coffee-show-composition')
 const storedImg = localStorage.getItem('coffee-show-image')
 
 export const useMenuDisplayStore = create<MenuDisplayState>((set) => ({
-  showDescription: storedDesc !== null ? storedDesc === 'true' : true,
-  showComposition: storedComp !== null ? storedComp === 'true' : true,
-  showImage: storedImg !== null ? storedImg === 'true' : true,
+  showDescription: storedDesc !== null ? storedDesc === 'true' : ADMIN_CONFIG_DEFAULTS.showDescription,
+  showComposition: storedComp !== null ? storedComp === 'true' : ADMIN_CONFIG_DEFAULTS.showComposition,
+  showImage: storedImg !== null ? storedImg === 'true' : ADMIN_CONFIG_DEFAULTS.showImage,
   setShowDescription: (v) => {
     localStorage.setItem('coffee-show-description', String(v))
     set({ showDescription: v })

@@ -21,20 +21,18 @@ model AdminConfig {
   language        String  @default("en")
   // pickupLanguage controls badge letters on /pickup independently of the general app language.
   // "C"/"O" (en), "K"/"A" (de), "C"/"A" (ro) — see BADGE_LETTERS in PickupView.tsx.
-  pickupLanguage  String  @default("en")
+  pickupLanguage  String  @default("de")
   qrBaseUrl       String  @default("")
   darkMode        Boolean @default(false)
-  showDescription Boolean @default(true)
-  showComposition Boolean @default(true)
-  showImage       Boolean @default(true)
-  // Font sizes in px for the three CSS custom properties (--fs-primary, --fs-secondary, --fs-small).
-  // Applied at runtime via document.documentElement.style.setProperty on all views.
-  // Defaults match the current hardcoded CSS values (2.25rem / 1.8rem / 1.5rem @ 16px base).
-  fsPrimary       Int     @default(36)
+  // Defaults must match ADMIN_CONFIG_DEFAULTS in packages/shared/src/constants.ts
+  showDescription Boolean @default(false)
+  showComposition Boolean @default(false)
+  showImage       Boolean @default(false)
+  fsPrimary       Int     @default(24)
   fsPrimaryMode   String  @default("px")
-  fsSecondary     Int     @default(29)
+  fsSecondary     Int     @default(20)
   fsSecondaryMode String  @default("px")
-  fsSmall         Int     @default(24)
+  fsSmall         Int     @default(16)
   fsSmallMode     String  @default("px")
 }
 

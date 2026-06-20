@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { ADMIN_CONFIG_DEFAULTS as D } from '@coffee/shared'
 import prisma from './prisma.js'
 
 const SINGLETON_ID = 'singleton'
@@ -31,7 +32,7 @@ export async function updateAdminPassword(newPassword: string): Promise<void> {
 
 export async function getLanguage(): Promise<string> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
-  return config?.language ?? 'en'
+  return config?.language ?? D.language
 }
 
 export async function setLanguage(language: string): Promise<void> {
@@ -40,7 +41,7 @@ export async function setLanguage(language: string): Promise<void> {
 
 export async function getPickupLanguage(): Promise<string> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
-  return config?.pickupLanguage ?? 'en'
+  return config?.pickupLanguage ?? D.pickupLanguage
 }
 
 export async function setPickupLanguage(pickupLanguage: string): Promise<void> {
@@ -49,7 +50,7 @@ export async function setPickupLanguage(pickupLanguage: string): Promise<void> {
 
 export async function getDarkMode(): Promise<boolean> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
-  return config?.darkMode ?? false
+  return config?.darkMode ?? D.darkMode
 }
 
 export async function setDarkMode(darkMode: boolean): Promise<void> {
@@ -78,15 +79,15 @@ export async function getMenuDisplay(): Promise<{
 }> {
   const config = await prisma.adminConfig.findUnique({ where: { id: SINGLETON_ID } })
   return {
-    showDescription: config?.showDescription ?? true,
-    showComposition: config?.showComposition ?? true,
-    showImage: config?.showImage ?? true,
-    fsPrimary: config?.fsPrimary ?? 36,
-    fsPrimaryMode: config?.fsPrimaryMode ?? 'px',
-    fsSecondary: config?.fsSecondary ?? 29,
-    fsSecondaryMode: config?.fsSecondaryMode ?? 'px',
-    fsSmall: config?.fsSmall ?? 24,
-    fsSmallMode: config?.fsSmallMode ?? 'px',
+    showDescription: config?.showDescription ?? D.showDescription,
+    showComposition: config?.showComposition ?? D.showComposition,
+    showImage: config?.showImage ?? D.showImage,
+    fsPrimary: config?.fsPrimary ?? D.fsPrimary,
+    fsPrimaryMode: config?.fsPrimaryMode ?? D.fsPrimaryMode,
+    fsSecondary: config?.fsSecondary ?? D.fsSecondary,
+    fsSecondaryMode: config?.fsSecondaryMode ?? D.fsSecondaryMode,
+    fsSmall: config?.fsSmall ?? D.fsSmall,
+    fsSmallMode: config?.fsSmallMode ?? D.fsSmallMode,
   }
 }
 

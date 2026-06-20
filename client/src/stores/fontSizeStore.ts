@@ -6,13 +6,17 @@
 // (percentage of the larger viewport dimension — CSS vmax unit).
 // The CSS value applied is e.g. "36px" or "5vmax".
 import { create } from 'zustand'
+import { ADMIN_CONFIG_DEFAULTS } from '@coffee/shared'
 
 export type FontMode = 'px' | 'vmax'
 
 const DEFAULTS = {
-  fsPrimary: 36, fsPrimaryMode: 'px' as FontMode,
-  fsSecondary: 29, fsSecondaryMode: 'px' as FontMode,
-  fsSmall: 24, fsSmallMode: 'px' as FontMode,
+  fsPrimary: ADMIN_CONFIG_DEFAULTS.fsPrimary,
+  fsPrimaryMode: ADMIN_CONFIG_DEFAULTS.fsPrimaryMode as FontMode,
+  fsSecondary: ADMIN_CONFIG_DEFAULTS.fsSecondary,
+  fsSecondaryMode: ADMIN_CONFIG_DEFAULTS.fsSecondaryMode as FontMode,
+  fsSmall: ADMIN_CONFIG_DEFAULTS.fsSmall,
+  fsSmallMode: ADMIN_CONFIG_DEFAULTS.fsSmallMode as FontMode,
 }
 
 interface FontSizeState {

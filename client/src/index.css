@@ -12,10 +12,11 @@ body {
   /* Font size scale — three tiers used throughout the ordering UI.
      primary:   headings, item names, interactive labels, counters
      secondary: body copy, notes fields, dropdowns, status chips, timestamps
-     small:     badges, input labels */
-  --fs-primary: 2.25rem;
-  --fs-secondary: 1.8rem;
-  --fs-small: 1.5rem;
+     small:     badges, input labels
+     Values must match ADMIN_CONFIG_DEFAULTS in packages/shared/src/constants.ts */
+  --fs-primary: 24px;
+  --fs-secondary: 20px;
+  --fs-small: 16px;
 }
 
 /* Dark mode colour overrides — MUI ThemeProvider handles component colours;
