@@ -447,7 +447,7 @@ export function createManagementRouter(io: IoServer<ClientToServerEvents, Server
       ])
       io.to('kitchen').to('display').emit('kitchen:snapshot', kitchenSnap)
       uniqueTableIds.forEach((tableId, i) => {
-        io.to(`table:${tableId}`).emit('table:snapshot', tableSnaps[i])
+        io.to(`table:${tableId}`).emit('table:snapshot', tableSnaps[i]!)
       })
       res.json({ data: { deleted: ids.length } })
     } catch {
