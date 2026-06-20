@@ -27,7 +27,9 @@ COPY client/index.html ./client/index.html
 COPY client/vite.config.ts ./client/vite.config.ts
 COPY client/tsconfig.json ./client/tsconfig.json
 COPY packages/shared/src ./packages/shared/src
+COPY packages/shared/tsconfig.json ./packages/shared/tsconfig.json
 
+RUN npm run build --workspace=@coffee/shared
 RUN npm run build --workspace=client
 RUN npm run build --workspace=server
 
@@ -55,6 +57,7 @@ RUN npm run db:generate --workspace=server
 # Copy compiled output from the builder stage.
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Uploads directory — override with a bind-mount or named volume to persist files across deploys.
 RUN mkdir -p ./server/uploads/menu-images
